@@ -1,8 +1,9 @@
 # Food-Waste-and-Recipe-Tracker
 Design System Inspiration 
 -------------------------
-Our vision is to have a warm, inviting, engaging app that is clean cut but still cutesy. We like the green color palette with warm, neutral colors
-- we want to include actual icons or animations, not emojis (think Dudel drawings or Yuka carrot)
+Our vision is to have a warm, inviting, engaging app that is clean cut but still cutesy. We like the green color palette with warm, neutral colors.
+We want to include actual icons or animations, not emojis (think Dudel drawings or Yuka carrot)
+
 ** YUKA
 - we like the carrot design
 - like the color palette
