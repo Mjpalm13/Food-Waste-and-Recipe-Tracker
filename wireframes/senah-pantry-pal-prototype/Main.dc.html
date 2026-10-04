@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pantry Pal prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&amp;family=Caveat:wght@600;700&amp;display=swap">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+sc-if,sc-for{display:contents}
+a{color:#3B5534}a:hover{color:#2B3F26}
+.app{width:390px;height:844px;position:relative;overflow:hidden;background:#F4F1EA;color:#2B2A27;font-family:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;flex-direction:column;font-size:15px;line-height:1.4}
+.strip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 8px 0 12px;min-height:44px;background:#EAE5DA;border-bottom:1.5px dashed #A39D90}
+.stamp{font-family:'Caveat',cursive;font-size:20px;font-weight:700;color:#5A554C;background:none;border:1.5px dashed #8C867A;border-radius:8px;padding:0 10px;min-height:36px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.goalbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;background:none;border:none;font:inherit;font-weight:700;font-size:14px;color:#3B5534;cursor:pointer}
+.screen{flex:1;display:flex;flex-direction:column;min-height:0}
+.topbar{display:flex;align-items:center;gap:6px;padding:8px 10px 4px;min-height:60px}
+.topbar .title{flex:1;font-size:18px;font-weight:800;margin:0;padding-left:4px}
+.scroll{flex:1;overflow-y:auto;padding:8px 20px 28px;display:flex;flex-direction:column;gap:20px}
+.h1{font-size:30px;font-weight:800;line-height:1.12;margin:0;letter-spacing:-0.01em;text-wrap:balance}
+.h2{font-size:19px;font-weight:800;margin:0}
+.h3{font-size:16px;font-weight:700;margin:0}
+.muted{color:#5F5B53}
+.small{font-size:13px}
+.lead{font-size:16px;color:#4A463F;margin:0;text-wrap:pretty}
+.section{display:flex;flex-direction:column;gap:10px}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.i-sm{width:18px;height:18px}
+.btn{min-height:48px;border-radius:12px;border:1.5px solid #2B2A27;background:#fff;font:inherit;font-weight:700;font-size:16px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:#2B2A27;text-decoration:none}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:#4A6741;border-color:#4A6741;color:#fff}
+.btn-ghost{border-color:transparent;background:transparent;color:#3B5534}
+.btn-block{width:100%}
+.btn-row{display:flex;gap:10px}
+.btn-row .btn{flex:1}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:none;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#2B2A27;position:relative;flex:none}
+.icon-btn.on{color:#4A6741}
+.badge{position:absolute;top:6px;right:6px;min-width:18px;height:18px;border-radius:9px;background:#9A4A12;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.card{background:#fff;border:1.5px solid #CFC8BA;border-radius:14px;padding:14px}
+.ph{background-color:#E7E3D9;background-image:linear-gradient(to top right,transparent calc(50% - 1px),#C9C2B3 50%,transparent calc(50% + 1px)),linear-gradient(to bottom right,transparent calc(50% - 1px),#C9C2B3 50%,transparent calc(50% + 1px));border:1.5px dashed #B3AC9E;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#5F5B53;font-size:12px;font-family:'Caveat',cursive;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #A39D90;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#2B2A27;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:#4A6741;border-color:#4A6741;color:#fff}
+.tag{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#E3EADB;color:#33492D;white-space:nowrap;flex:none}
+.tag.warn{background:#F6E2C6;color:#7A3E0C}
+.rcard{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:#fff;border:1.5px solid #CFC8BA;border-radius:14px;padding:10px;font:inherit;color:inherit;cursor:pointer}
+.prow{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #DDD7CB;padding:10px 2px;min-height:64px;font:inherit;color:inherit;cursor:pointer}
+.lrow{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:#fff;border:1.5px solid #CFC8BA;border-radius:12px;padding:0 14px;min-height:56px;font:inherit;font-weight:600;color:inherit;cursor:pointer}
+.lrow span.grow{flex:1}
+.label{font-size:14px;font-weight:700}
+.field{display:flex;flex-direction:column;gap:6px}
+.input{width:100%;min-height:48px;border:1.5px solid #8C867A;border-radius:10px;padding:0 14px;font:inherit;font-size:16px;background:#fff;color:#2B2A27}
+textarea.input{padding:12px 14px;min-height:88px;resize:none}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:#E7E3D9;border-radius:12px;padding:4px}
+.seg button{min-height:40px;border:none;border-radius:9px;background:transparent;font:inherit;font-weight:700;font-size:14px;color:#5F5B53;cursor:pointer}
+.seg button.on{background:#fff;color:#2B2A27;box-shadow:0 1px 0 #CFC8BA}
+.tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1.5px solid #CFC8BA;background:#FBF9F4;padding:4px 4px 16px}
+.tab{min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;font-size:11px;font-weight:700;background:none;border:none;color:#6A665E;cursor:pointer}
+.tab.on{color:#3B5534}
+.addbtn{width:52px;height:52px;border-radius:50%;background:#4A6741;color:#fff;display:flex;align-items:center;justify-content:center;margin-top:-14px;border:3px solid #FBF9F4}
+.overlay{position:absolute;inset:0;background:rgba(43,42,39,.5);display:flex;align-items:flex-end;z-index:20}
+.overlay.center{align-items:center;justify-content:center;padding:20px}
+.sheet{background:#FBF9F4;width:100%;border-radius:20px 20px 0 0;padding:12px 20px 28px;max-height:88%;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.grab{width:40px;height:4px;border-radius:2px;background:#BDB6A8;align-self:center}
+.modal{background:#FBF9F4;border-radius:18px;padding:22px;width:100%;border:1.5px solid #2B2A27;display:flex;flex-direction:column;gap:14px;max-height:100%;overflow-y:auto}
+.note{font-family:'Caveat',cursive;font-size:19px;color:#5A554C;line-height:1.15}
+.toast{position:absolute;left:16px;right:16px;bottom:94px;background:#2B2A27;color:#fff;border-radius:12px;padding:14px 16px;z-index:40;display:flex;gap:10px;align-items:center;font-weight:600}
+.check{width:26px;height:26px;border-radius:50%;border:1.5px solid #8C867A;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.check.on{background:#4A6741;border-color:#4A6741}
+.bar{height:8px;border-radius:4px;background:#E7E3D9;overflow:hidden}
+.bar span{display:block;height:100%;background:#4A6741;border-radius:4px}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots span{width:8px;height:8px;border-radius:4px;background:#CFC8BA}
+.dots span.on{width:22px;background:#4A6741}
+.hscroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin:0 -20px;padding-left:20px;padding-right:20px}
+.mini{flex:none;width:128px;display:flex;flex-direction:column;gap:6px;background:#fff;border:1.5px solid #CFC8BA;border-radius:14px;padding:8px;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.switch{width:52px;height:32px;border-radius:16px;border:1.5px solid #8C867A;background:#E7E3D9;position:relative;cursor:pointer;flex:none}
+.switch span{position:absolute;top:3px;left:3px;width:23px;height:23px;border-radius:50%;background:#fff;border:1.5px solid #8C867A}
+.switch.on{background:#4A6741;border-color:#4A6741}
+.switch.on span{left:23px;border-color:#4A6741}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper .icon-btn{border:1.5px solid #8C867A;background:#fff}
+.num{width:28px;height:28px;border-radius:50%;background:#E3EADB;color:#33492D;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+.hint{display:flex;gap:10px;align-items:flex-start;background:#E3EADB;border-radius:12px;padding:12px 14px;color:#2F4529;font-size:14px}
+</style>
+</helmet>
+<div class="app">
+
+<!-- persistent prototype strip: early-stage notice + goal -->
+<div class="strip">
+<button class="stamp" onClick="{{h.openHelp}}" aria-label="About this low-fidelity prototype">lo-fi prototype<svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8v.5"></path></svg></button>
+<button class="goalbtn" onClick="{{h.openGoal}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"></path></svg>Goal: {{goal.done}} of 3 done</button>
+</div>
+
+<!-- ============ HOME ============ -->
+<sc-if value="{{s.home}}" hint-placeholder-val="{{ true }}">
+<div class="screen">
+<div class="topbar">
+<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="color:#4A6741;margin-left:6px"><path d="M5 19c0-8 6-14 15-14 0 9-6 15-14 15"></path><path d="M5 19l8-8"></path></svg>
+<p class="title">Pantry Pal</p>
+<button class="icon-btn" onClick="{{h.openNotifs}}" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"></path><path d="M10 21h4"></path></svg><sc-if value="{{hasSoon}}" hint-placeholder-val="{{ true }}"><span class="badge">{{soonCount}}</span></sc-if></button>
+</div>
+<div class="scroll">
+<div class="section" style="gap:12px">
+<h1 class="h1">Cook what you have.<br>Waste less.</h1>
+<p class="lead">Log your groceries, see what is about to go bad, and get recipes that use it up.</p>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+<button class="btn btn-primary btn-block" style="min-height:56px;font-size:17px" onClick="{{h.goScan}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"></path><path d="M8 12h8"></path></svg>Scan groceries into my pantry</button>
+<div class="btn-row">
+<button class="btn" onClick="{{h.goManual}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Type it in</button>
+<button class="btn" onClick="{{h.tabRecipes}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>Find a recipe</button>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="sechead"><h2 class="h2">Use these soon</h2><button class="btn btn-ghost" style="min-height:44px;padding:0 6px;font-size:14px" onClick="{{h.tabPantry}}">Whole pantry</button></div>
+<sc-if value="{{hasSoon}}" hint-placeholder-val="{{ true }}">
+<div class="hscroll">
+<sc-for list="{{soonItems}}" as="p" hint-placeholder-count="3">
+<button class="mini" onClick="{{p.open}}"><div class="ph" style="height:72px">food</div><span style="font-weight:700">{{p.name}}</span><span class="tag warn" style="align-self:flex-start">{{p.exp}}</span></button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{noSoon}}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin:0">Nothing is close to expiring. Nice work.</p></sc-if>
+</div>
+
+<div class="section">
+<div class="sechead"><h2 class="h2">You can cook now</h2></div>
+<sc-for list="{{topRecipes}}" as="r" hint-placeholder-count="3">
+<button class="rcard" onClick="{{r.open}}"><div class="ph" style="width:72px;height:72px;flex:none">photo</div><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1"><span class="h3">{{r.title}}</span><span class="small muted">{{r.timeText}} · {{r.matchText}}</span><sc-if value="{{r.usesSoon}}" hint-placeholder-val="{{ true }}"><span class="tag warn" style="align-self:flex-start">{{r.soonText}}</span></sc-if></div><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</sc-for>
+</div>
+
+<button class="lrow" onClick="{{h.goCreate}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg><span class="grow">Write your own recipe</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ PANTRY ============ -->
+<sc-if value="{{s.pantry}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><p class="title">My pantry <span class="muted" style="font-weight:600;font-size:15px">({{pantryCount}} items)</span></p>
+<button class="icon-btn" onClick="{{h.goScan}}" aria-label="Scan an item"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"></path><path d="M8 12h8"></path></svg></button>
+<button class="icon-btn" onClick="{{h.goManual}}" aria-label="Type in an item"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<div class="scroll" style="gap:12px">
+<div class="chips" role="group" aria-label="Filter by location">
+<sc-for list="{{locChips}}" as="c" hint-placeholder-count="5"><button class="chip {{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for>
+</div>
+<p class="small muted" style="margin:0">Sorted by what expires first.</p>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{pantryRows}}" as="p" hint-placeholder-count="6">
+<button class="prow" onClick="{{p.open}}"><div class="ph" style="width:44px;height:44px;flex:none;border-radius:10px"></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:700">{{p.name}}</span><span class="small muted">{{p.sub}}</span></div><span class="tag {{p.tagCls}}">{{p.exp}}</span></button>
+</sc-for>
+</div>
+<sc-if value="{{pantryEmpty}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><span class="h3">Nothing here yet</span><span class="muted">Scan or type in what you bought.</span><button class="btn btn-primary" onClick="{{h.goScan}}">Scan an item</button></div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ PANTRY ITEM ============ -->
+<sc-if value="{{s.item}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">{{item.name}}</p></div>
+<div class="scroll">
+<div class="ph" style="height:150px">photo of item</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+<div style="display:flex;flex-direction:column;gap:2px"><span class="h2">{{item.name}}</span><span class="muted">{{item.sub}}</span></div>
+<span class="tag {{item.tagCls}}" style="font-size:14px;padding:6px 12px">{{item.expLong}}</span>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" onClick="{{h.markUsed}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>I used it</button>
+<button class="btn" onClick="{{h.markTossed}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"></path></svg>I tossed it</button>
+</div>
+<div class="section">
+<h2 class="h2">Recipes that use {{item.lower}}</h2>
+<sc-for list="{{itemRecipes}}" as="r" hint-placeholder-count="2">
+<button class="rcard" onClick="{{r.open}}"><div class="ph" style="width:72px;height:72px;flex:none">photo</div><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1"><span class="h3">{{r.title}}</span><span class="small muted">{{r.timeText}} · {{r.matchText}}</span></div><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</sc-for>
+<sc-if value="{{itemNoRecipes}}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin:0">No recipes yet. Try writing one with this item.</p><button class="btn" onClick="{{h.goCreate}}">Write a recipe</button></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ SCAN ============ -->
+<sc-if value="{{s.scan}}" hint-placeholder-val="{{ false }}">
+<div class="screen" style="background:#3A3833;color:#fff">
+<div class="topbar"><button class="icon-btn" style="color:#fff" onClick="{{h.back}}" aria-label="Close scanner"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><p class="title" style="color:#fff">Scan an item</p></div>
+<div class="scroll" style="align-items:center;justify-content:center;gap:18px">
+<div style="width:260px;height:260px;border:3px dashed #D9D3C6;border-radius:24px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px"><span class="note" style="color:#EAE5DA">camera view goes here<br>(not in this prototype)</span></div>
+<p style="margin:0;text-align:center;color:#EAE5DA;max-width:280px">Point at a barcode, label, or loose produce.</p>
+<button class="btn btn-primary btn-block" onClick="{{h.simScan}}">Pretend to scan: baby spinach</button>
+<button class="btn btn-ghost" style="color:#fff" onClick="{{h.goManualFromScan}}">Type it in instead</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ SCAN RESULT ============ -->
+<sc-if value="{{s.scanResult}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">We found</p></div>
+<div class="scroll">
+<div style="display:flex;gap:14px;align-items:center"><div class="ph" style="width:88px;height:88px;flex:none">spinach</div><div style="display:flex;flex-direction:column;gap:4px"><span class="h2">Baby spinach</span><span class="muted">1 bag</span></div></div>
+<div class="field"><span class="label">Where will you keep it?</span><div class="chips"><sc-for list="{{scanLocChips}}" as="c" hint-placeholder-count="4"><button class="chip {{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div></div>
+<div class="field"><span class="label">Good for about</span><div class="chips"><sc-for list="{{scanDayChips}}" as="c" hint-placeholder-count="4"><button class="chip {{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div><span class="small muted">Our guess for fresh spinach. Change it if the bag says otherwise.</span></div>
+<button class="btn btn-primary btn-block" onClick="{{h.addScanned}}">Add to my pantry</button>
+<button class="btn btn-ghost" onClick="{{h.rescan}}">Not right? Scan again</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ MANUAL ADD ============ -->
+<sc-if value="{{s.manual}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">Add an item</p></div>
+<div class="scroll">
+<div class="field"><label class="label" for="f-name">What is it?</label><input id="f-name" class="input" placeholder="e.g. Spinach" value="{{f.name}}" onChange="{{h.fName}}"></div>
+<div class="field"><span class="small muted">Quick picks</span><div class="chips"><sc-for list="{{quickPicks}}" as="c" hint-placeholder-count="4"><button class="chip" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div></div>
+<div class="field"><label class="label" for="f-qty">How much? (optional)</label><input id="f-qty" class="input" placeholder="e.g. 1 bag" value="{{f.qty}}" onChange="{{h.fQty}}"></div>
+<div class="field"><span class="label">Where?</span><div class="chips"><sc-for list="{{fLocChips}}" as="c" hint-placeholder-count="4"><button class="chip {{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div></div>
+<div class="field"><span class="label">Good for about</span><div class="chips"><sc-for list="{{fDayChips}}" as="c" hint-placeholder-count="5"><button class="chip {{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div></div>
+<button class="btn btn-primary btn-block" disabled="{{f.empty}}" onClick="{{h.addManual}}">Add to my pantry</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ RECIPES ============ -->
+<sc-if value="{{s.recipes}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><p class="title">Recipes</p><button class="icon-btn" onClick="{{h.goCreate}}" aria-label="Write a recipe"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div class="scroll" style="gap:14px">
+<div class="seg" role="group" aria-label="Recipe lists"><sc-for list="{{segs}}" as="g" hint-placeholder-count="3"><button class="{{g.cls}}" aria-pressed="{{g.on}}" onClick="{{g.pick}}">{{g.label}}</button></sc-for></div>
+<sc-if value="{{showSearch}}" hint-placeholder-val="{{ true }}">
+<div style="position:relative"><label for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search recipes or ingredients</label><input id="q" class="input" style="padding-left:44px" placeholder="Search recipes or ingredients" value="{{q}}" onChange="{{h.setQ}}"><svg class="i muted" viewBox="0 0 24 24" aria-hidden="true" style="position:absolute;left:12px;top:13px"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg></div>
+<div class="chips" role="group" aria-label="Filters"><sc-for list="{{filterChips}}" as="c" hint-placeholder-count="4"><button class="chip {{c.cls}}" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div>
+</sc-if>
+<sc-if value="{{segMine}}" hint-placeholder-val="{{ false }}">
+<button class="btn btn-primary btn-block" onClick="{{h.goCreate}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Write a new recipe</button>
+</sc-if>
+<sc-for list="{{recipeList}}" as="r" hint-placeholder-count="4">
+<button class="rcard" onClick="{{r.open}}"><div class="ph" style="width:72px;height:72px;flex:none">photo</div><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1"><span class="h3">{{r.title}}</span><span class="small muted">{{r.timeText}} · {{r.matchText}}</span><sc-if value="{{r.usesSoon}}" hint-placeholder-val="{{ true }}"><span class="tag warn" style="align-self:flex-start">{{r.soonText}}</span></sc-if></div><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</sc-for>
+<sc-if value="{{recipeEmpty}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="display:flex;flex-direction:column;gap:8px"><span class="h3">{{emptyTitle}}</span><span class="muted">{{emptyText}}</span></div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ RECIPE DETAIL ============ -->
+<sc-if value="{{s.recipe}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title"></p>
+<button class="icon-btn {{rec.savedCls}}" onClick="{{h.toggleSave}}" aria-pressed="{{rec.saved}}" aria-label="Save recipe"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="fill:{{rec.heartFill}}"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.5-7 10-7 10z"></path></svg></button>
+<button class="icon-btn" onClick="{{h.openShare}}" aria-label="Share recipe"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"></path></svg></button>
+</div>
+<div class="scroll" style="gap:16px">
+<div class="ph" style="height:170px">recipe photo</div>
+<div style="display:flex;flex-direction:column;gap:6px"><h1 class="h1" style="font-size:26px">{{rec.title}}</h1><span class="muted">{{rec.timeText}} · Serves {{rec.serves}} · by {{rec.by}}</span></div>
+<div class="card" style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700">{{rec.matchText}}</span><span class="muted">{{rec.have}}/{{rec.total}}</span></div><div class="bar"><span style="width:{{rec.pct}}"></span></div><sc-if value="{{rec.usesSoon}}" hint-placeholder-val="{{ true }}"><span class="tag warn" style="align-self:flex-start">{{rec.soonText}}</span></sc-if></div>
+<div class="btn-row">
+<button class="btn btn-primary" style="flex:2" onClick="{{h.startCook}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v3a6 6 0 01-6 6h-4a6 6 0 01-6-6z"></path><path d="M2 11h20"></path></svg>Start cooking</button>
+<button class="btn" onClick="{{h.toggleSave}}">{{rec.saveLabel}}</button>
+</div>
+<div class="section"><h2 class="h2">Ingredients</h2>
+<sc-for list="{{rec.ingRows}}" as="g" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:10px;min-height:40px;border-bottom:1px solid #DDD7CB"><span class="check {{g.cls}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span style="flex:1">{{g.name}}</span><span class="small {{g.noteCls}}">{{g.note}}</span></div>
+</sc-for>
+</div>
+<div class="section"><h2 class="h2">Steps</h2>
+<sc-for list="{{rec.stepRows}}" as="t" hint-placeholder-count="3"><div style="display:flex;gap:10px;align-items:flex-start"><span class="num">{{t.n}}</span><span style="padding-top:3px">{{t.t}}</span></div></sc-for>
+</div>
+<button class="btn btn-block" onClick="{{h.openShare}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6"></path></svg>Share with a friend</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ COOK MODE ============ -->
+<sc-if value="{{s.cook}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Exit cooking"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><p class="title">{{rec.title}}</p></div>
+<div class="scroll" style="justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:16px">
+<span class="muted" style="font-weight:700">Step {{cook.n}} of {{cook.total}}</span>
+<div class="bar"><span style="width:{{cook.pct}}"></span></div>
+<p style="font-size:26px;font-weight:700;line-height:1.3;margin:12px 0 0;text-wrap:pretty">{{cook.text}}</p>
+</div>
+<div class="btn-row">
+<button class="btn" disabled="{{cook.first}}" onClick="{{h.cookPrev}}">Back</button>
+<button class="btn btn-primary" onClick="{{h.cookNext}}">{{cook.nextLabel}}</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ USE UP ============ -->
+<sc-if value="{{s.useup}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">Nice cooking!</p></div>
+<div class="scroll">
+<p class="lead">Which of these did you use up? We will take them out of your pantry.</p>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{useRows}}" as="u" hint-placeholder-count="3"><button class="lrow" aria-pressed="{{u.on}}" onClick="{{u.toggle}}"><span class="check {{u.cls}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span class="grow">{{u.name}}</span><span class="small muted">{{u.exp}}</span></button></sc-for>
+</div>
+<sc-if value="{{useEmpty}}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin:0">None of this recipe's ingredients are in your pantry.</p></sc-if>
+<button class="btn btn-primary btn-block" onClick="{{h.confirmUse}}">Update my pantry</button>
+<button class="btn btn-ghost" onClick="{{h.tabHome}}">Skip for now</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ CREATE (4 steps) ============ -->
+<sc-if value="{{s.create}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">New recipe</p><button class="btn btn-ghost" style="min-height:44px;padding:0 10px;font-size:15px" onClick="{{h.exitCreate}}">Cancel</button></div>
+<div style="padding:0 20px 6px;display:flex;flex-direction:column;gap:8px"><span class="small muted" style="font-weight:700">Step {{c.step}} of 4 · {{c.stepName}}</span><div class="bar"><span style="width:{{c.pct}}"></span></div></div>
+<div class="scroll">
+
+<sc-if value="{{c.s1}}" hint-placeholder-val="{{ true }}">
+<div class="field"><label class="label" for="d-title">Recipe name</label><input id="d-title" class="input" placeholder="e.g. Grandma's spinach pie" value="{{d.title}}" onChange="{{h.dTitle}}"></div>
+<button class="ph" style="height:120px;width:100%;cursor:pointer" onClick="{{h.photoNope}}">+ add a photo</button>
+<div class="field"><span class="label">About how long?</span><div class="chips"><sc-for list="{{timeChips}}" as="t" hint-placeholder-count="4"><button class="chip {{t.cls}}" aria-pressed="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div></div>
+<div style="display:flex;align-items:center;justify-content:space-between"><span class="label">Serves</span><div class="stepper"><button class="icon-btn" onClick="{{h.servesDown}}" aria-label="Fewer servings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button><span style="font-weight:800;font-size:18px;min-width:28px;text-align:center">{{d.serves}}</span><button class="icon-btn" onClick="{{h.servesUp}}" aria-label="More servings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div></div>
+<button class="btn btn-primary btn-block" disabled="{{c.noTitle}}" onClick="{{h.cNext}}">Next: ingredients</button>
+</sc-if>
+
+<sc-if value="{{c.s2}}" hint-placeholder-val="{{ false }}">
+<div class="field"><span class="label">Tap what you are using from your pantry</span><span class="small muted">Items expiring soon are listed first.</span><div class="chips"><sc-for list="{{dPantryChips}}" as="t" hint-placeholder-count="6"><button class="chip {{t.cls}}" aria-pressed="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div></div>
+<div class="field"><label class="label" for="d-other">Something else?</label><div style="display:flex;gap:8px"><input id="d-other" class="input" placeholder="e.g. Feta" value="{{d.other}}" onChange="{{h.dOther}}"><button class="btn" disabled="{{c.noOther}}" onClick="{{h.addOther}}">Add</button></div></div>
+<div class="section"><span class="label">In this recipe ({{c.ingCount}})</span>
+<sc-for list="{{dIngRows}}" as="t" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:8px;min-height:44px;border-bottom:1px solid #DDD7CB"><span style="flex:1">{{t.name}}</span><button class="icon-btn" onClick="{{t.remove}}" aria-label="Remove {{t.name}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></sc-for>
+</div>
+<button class="btn btn-primary btn-block" disabled="{{c.noIngs}}" onClick="{{h.cNext}}">Next: steps</button>
+</sc-if>
+
+<sc-if value="{{c.s3}}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{dStepRows}}" as="t" hint-placeholder-count="2"><div style="display:flex;gap:10px;align-items:flex-start"><span class="num">{{t.n}}</span><span style="flex:1;padding-top:3px">{{t.t}}</span><button class="icon-btn" onClick="{{t.remove}}" aria-label="Remove step {{t.n}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></sc-for>
+<div class="field"><label class="label" for="d-step">Step {{c.nextStepN}}</label><textarea id="d-step" class="input" placeholder="What happens next?" value="{{d.stepText}}" onChange="{{h.dStep}}"></textarea><button class="btn" disabled="{{c.noStepText}}" onClick="{{h.addStep}}">Add step</button></div>
+<button class="btn btn-primary btn-block" disabled="{{c.noSteps}}" onClick="{{h.cNext}}">Next: review</button>
+</sc-if>
+
+<sc-if value="{{c.s4}}" hint-placeholder-val="{{ false }}">
+<div class="card" style="display:flex;flex-direction:column;gap:12px">
+<div class="ph" style="height:110px">your photo</div>
+<span class="h2">{{d.title}}</span>
+<span class="muted">{{c.timeText}} · Serves {{d.serves}} · {{c.ingCount}} ingredients · {{c.stepCount}} steps</span>
+<div class="chips"><sc-for list="{{dIngRows}}" as="t" hint-placeholder-count="3"><span class="tag">{{t.name}}</span></sc-for></div>
+</div>
+<button class="btn btn-primary btn-block" onClick="{{h.saveRecipe}}">Save to my recipes</button>
+<button class="btn btn-block" onClick="{{h.back}}">Go back and edit</button>
+</sc-if>
+
+</div>
+</div>
+</sc-if>
+
+<!-- ============ SHARED WITH ME ============ -->
+<sc-if value="{{s.shared}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">Shared with me</p></div>
+<div class="scroll" style="gap:12px">
+<sc-for list="{{friendRecipes}}" as="r" hint-placeholder-count="2">
+<button class="rcard" onClick="{{r.open}}"><div class="ph" style="width:72px;height:72px;flex:none">photo</div><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1"><span class="small muted" style="font-weight:700">From {{r.by}}</span><span class="h3">{{r.title}}</span><span class="small muted">{{r.timeText}} · {{r.matchText}}</span></div><svg class="i i-sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</sc-for>
+<sc-if value="{{hasSentShares}}" hint-placeholder-val="{{ false }}">
+<div class="section"><h2 class="h2">You shared</h2><sc-for list="{{sentRows}}" as="r" hint-placeholder-count="1"><button class="lrow" onClick="{{r.open}}"><span class="grow">{{r.title}}</span><span class="tag">sent</span></button></sc-for></div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ NOTIFICATIONS ============ -->
+<sc-if value="{{s.notifs}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">Notifications</p></div>
+<div class="scroll" style="gap:8px">
+<sc-for list="{{notifRows}}" as="n" hint-placeholder-count="3">
+<button class="lrow" style="min-height:64px;font-weight:400" onClick="{{n.open}}"><span class="check {{n.cls}}" style="color:#2B2A27"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v6M12 16.5v.5"></path></svg></span><span class="grow"><b>{{n.title}}</b><br><span class="small muted">{{n.sub}}</span></span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</sc-for>
+<button class="btn btn-ghost" onClick="{{h.goReminders}}">Reminder settings</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ PROFILE ============ -->
+<sc-if value="{{s.profile}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><p class="title">Me</p></div>
+<div class="scroll" style="gap:16px">
+<div style="display:flex;align-items:center;gap:14px"><div class="ph" style="width:64px;height:64px;border-radius:50%;flex:none"></div><div style="display:flex;flex-direction:column"><span class="h2">Your name</span><span class="muted small">Home cook</span></div></div>
+<div class="card" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center">
+<div style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800;color:#3B5534">{{stats.used}}</span><span class="small muted">used up</span></div>
+<div style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800;color:#7A3E0C">{{stats.tossed}}</span><span class="small muted">tossed</span></div>
+<div style="display:flex;flex-direction:column"><span style="font-size:24px;font-weight:800">{{stats.saved}}</span><span class="small muted">saved recipes</span></div>
+</div>
+<span class="note" style="margin-top:-8px">counts from this session only</span>
+<div style="display:flex;flex-direction:column;gap:8px">
+<button class="lrow" onClick="{{h.goShared}}"><span class="grow">Shared with me</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+<button class="lrow" onClick="{{h.goMine}}"><span class="grow">My recipes</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+<button class="lrow" onClick="{{h.goReminders}}"><span class="grow">Expiry reminders</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+<button class="lrow" onClick="{{h.goDiet}}"><span class="grow">Food preferences</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+<button class="lrow" onClick="{{h.replayIntro}}"><span class="grow">Replay the intro</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+<button class="lrow" onClick="{{h.openHelpScreen}}"><span class="grow">About this prototype</span><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ REMINDERS ============ -->
+<sc-if value="{{s.reminders}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">Expiry reminders</p></div>
+<div class="scroll">
+<div class="card" style="display:flex;align-items:center;gap:12px"><span style="flex:1"><b>Remind me before food expires</b><br><span class="small muted">A nudge with recipes that use it.</span></span><button class="switch {{rem.cls}}" aria-pressed="{{rem.on}}" aria-label="Expiry reminders" onClick="{{h.toggleRem}}"><span></span></button></div>
+<div class="field"><span class="label">How early?</span><div class="chips"><sc-for list="{{leadChips}}" as="t" hint-placeholder-count="3"><button class="chip {{t.cls}}" aria-pressed="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div></div>
+<div class="card" style="display:flex;align-items:center;gap:12px"><span style="flex:1"><b>Weekly pantry summary</b><br><span class="small muted">Sunday morning, before you shop.</span></span><button class="switch {{dig.cls}}" aria-pressed="{{dig.on}}" aria-label="Weekly summary" onClick="{{h.toggleDigest}}"><span></span></button></div>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ FOOD PREFS ============ -->
+<sc-if value="{{s.diet}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">Food preferences</p></div>
+<div class="scroll">
+<p class="lead">We will favor recipes that fit. Pick any that apply.</p>
+<div class="chips"><sc-for list="{{dietChips}}" as="t" hint-placeholder-count="5"><button class="chip {{t.cls}}" aria-pressed="{{t.on}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div>
+<button class="btn btn-primary btn-block" onClick="{{h.saveDiet}}">Save preferences</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ ABOUT PROTOTYPE ============ -->
+<sc-if value="{{s.help}}" hint-placeholder-val="{{ false }}">
+<div class="screen">
+<div class="topbar"><button class="icon-btn" onClick="{{h.back}}" aria-label="Back"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><p class="title">About this prototype</p></div>
+<div class="scroll" style="gap:14px">
+<p class="lead">This is an early, low-fidelity version of Pantry Pal. Boxes with an X are where photos will go. Colors, words and layouts will change.</p>
+<div class="card" style="display:flex;flex-direction:column;gap:6px"><b>What works</b><span class="muted">Adding and removing pantry items, finding and filtering recipes, saving, writing your own recipe, cooking step by step, and sharing.</span></div>
+<div class="card" style="display:flex;flex-direction:column;gap:6px"><b>What is pretend</b><span class="muted">The camera scanner, photos, real friends and sending. Nothing you do is saved after you close the page.</span></div>
+<button class="btn btn-primary btn-block" onClick="{{h.openGoal}}">Show my goal</button>
+<button class="btn btn-block" onClick="{{h.replayIntro}}">Replay the intro</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ TAB BAR ============ -->
+<sc-if value="{{showTabs}}" hint-placeholder-val="{{ true }}">
+<nav class="tabbar" aria-label="Main">
+<button class="tab {{tc.home}}" onClick="{{h.tabHome}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>Home</button>
+<button class="tab {{tc.pantry}}" onClick="{{h.tabPantry}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M5 10h14M9 6v2M9 13v3"></path></svg>Pantry</button>
+<button class="tab" onClick="{{h.openAdd}}" aria-label="Add"><span class="addbtn"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span>Add</button>
+<button class="tab {{tc.recipes}}" onClick="{{h.tabRecipes}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"></path><path d="M5 17a3 3 0 013-3h11"></path></svg>Recipes</button>
+<button class="tab {{tc.profile}}" onClick="{{h.tabProfile}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>Me</button>
+</nav>
+</sc-if>
+
+<!-- ============ ADD SHEET ============ -->
+<sc-if value="{{addSheet}}" hint-placeholder-val="{{ false }}">
+<div class="overlay" onClick="{{h.closeAdd}}">
+<div class="sheet" onClick="{{h.stop}}">
+<div class="grab"></div>
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 class="h2">What are you adding?</h2><button class="icon-btn" onClick="{{h.closeAdd}}" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<span class="small muted" style="font-weight:700;margin-bottom:-8px">Groceries</span>
+<button class="lrow" onClick="{{h.goScan}}" style="min-height:64px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"></path><path d="M8 12h8"></path></svg><span class="grow">Scan an item<br><span class="small muted" style="font-weight:400">Fastest. Barcode or produce.</span></span></button>
+<button class="lrow" onClick="{{h.goManual}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg><span class="grow">Type it in</span></button>
+<span class="small muted" style="font-weight:700;margin-bottom:-8px">Recipes</span>
+<button class="lrow" onClick="{{h.goCreate}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"></path><path d="M5 17a3 3 0 013-3h11"></path></svg><span class="grow">Write a recipe</span></button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ SHARE SHEET ============ -->
+<sc-if value="{{shareOpen}}" hint-placeholder-val="{{ false }}">
+<div class="overlay" onClick="{{h.closeShare}}">
+<div class="sheet" onClick="{{h.stop}}">
+<div class="grab"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h2 class="h2">Share “{{shareTitle}}”</h2><button class="icon-btn" onClick="{{h.closeShare}}" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<span class="label">Send to friends</span>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{friendRows}}" as="p" hint-placeholder-count="4"><button class="lrow" aria-pressed="{{p.on}}" onClick="{{p.toggle}}"><div class="ph" style="width:36px;height:36px;border-radius:50%;flex:none;font-size:16px">{{p.initial}}</div><span class="grow">{{p.name}}</span><span class="check {{p.cls}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span></button></sc-for>
+</div>
+<button class="btn btn-primary btn-block" disabled="{{noShareTo}}" onClick="{{h.sendShare}}">{{sendLabel}}</button>
+<button class="btn btn-block" onClick="{{h.copyLink}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 006 0l3-3a4 4 0 00-6-6l-1 1"></path><path d="M14 10a4 4 0 00-6 0l-3 3a4 4 0 006 6l1-1"></path></svg>Copy link instead</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ GOAL SHEET ============ -->
+<sc-if value="{{showGoal}}" hint-placeholder-val="{{ false }}">
+<div class="overlay" onClick="{{h.closeGoal}}">
+<div class="sheet" onClick="{{h.stop}}">
+<div class="grab"></div>
+<div style="display:flex;align-items:center;justify-content:space-between"><h2 class="h2">Your goal</h2><button class="icon-btn" onClick="{{h.closeGoal}}" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+<p class="lead">You just bought spinach and don’t want it to go to waste. Get it into your pantry, find a recipe that uses it, then save that recipe and share it with a friend.</p>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{goalRows}}" as="g" hint-placeholder-count="3"><div style="display:flex;gap:12px;align-items:flex-start"><span class="check {{g.cls}}"><svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></span><span style="display:flex;flex-direction:column"><b>{{g.text}}</b><span class="small muted">{{g.hint}}</span></span></div></sc-for>
+</div>
+<span class="note">There is more than one way to do each step. Explore!</span>
+<button class="btn btn-primary btn-block" onClick="{{h.closeGoal}}">Got it</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ ONBOARDING ============ -->
+<sc-if value="{{inOnboard}}" hint-placeholder-val="{{ false }}">
+<div class="overlay" style="background:#F4F1EA;align-items:stretch;flex-direction:column;z-index:25;top:44px">
+<div style="display:flex;justify-content:flex-end;padding:8px 10px"><button class="btn btn-ghost" style="min-height:44px" onClick="{{h.skipOnboard}}">Skip</button></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:18px;padding:8px 28px 28px;justify-content:center">
+<div class="ph" style="height:240px">{{ob.art}}</div>
+<h1 class="h1" style="font-size:28px">{{ob.title}}</h1>
+<p class="lead">{{ob.text}}</p>
+</div>
+<div style="padding:0 24px 28px;display:flex;flex-direction:column;gap:16px">
+<div class="dots"><sc-for list="{{ob.dots}}" as="d" hint-placeholder-count="3"><span class="{{d.cls}}"></span></sc-for></div>
+<button class="btn btn-primary btn-block" onClick="{{h.nextOnboard}}">{{ob.cta}}</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ WELCOME / LO-FI NOTICE ============ -->
+<sc-if value="{{showNotice}}" hint-placeholder-val="{{ false }}">
+<div class="overlay center" style="z-index:30">
+<div class="modal" role="dialog" aria-modal="true" aria-labelledby="notice-title">
+<span class="stamp" style="align-self:flex-start;cursor:default">early prototype</span>
+<h2 class="h2" id="notice-title" style="font-size:22px">Welcome! This is a rough draft.</h2>
+<p style="margin:0">You are testing an early, <b>low-fidelity</b> version of Pantry Pal, an app that helps you cook what you already have so less food gets thrown out. It is meant to look unfinished. Grey boxes stand in for photos, and some features are pretend.</p>
+<div class="hint"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"></path></svg><span><b>Your goal:</b> you just bought spinach. Add it to your pantry, find a recipe that uses it, then save that recipe and share it with a friend.</span></div>
+<p class="small muted" style="margin:0">You can do it any way you like. Tap “Goal” at the top any time to check your progress.</p>
+<button class="btn btn-primary btn-block" onClick="{{h.startTour}}">Show me around first</button>
+<button class="btn btn-block" onClick="{{h.skipTour}}">Skip, take me to the app</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ GOAL COMPLETE ============ -->
+<sc-if value="{{goalDone}}" hint-placeholder-val="{{ false }}">
+<div class="overlay center" style="z-index:35">
+<div class="modal" role="dialog" aria-modal="true">
+<div class="ph" style="height:120px">celebration art</div>
+<h2 class="h2" style="font-size:22px">Goal complete!</h2>
+<p style="margin:0">Your spinach is saved from the bin, and a friend has a recipe to try. Thanks for testing.</p>
+<button class="btn btn-primary btn-block" onClick="{{h.closeDone}}">Keep exploring</button>
+</div>
+</div>
+</sc-if>
+
+<!-- ============ TOAST ============ -->
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div class="toast" role="status"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="color:#BFD3B4"><path d="M5 12l5 5 9-10"></path></svg><span>{{toast}}</span></div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.RECIPES = [
+      { id: 'frittata', title: 'Spinach & Tomato Frittata', time: 25, serves: 2, by: 'Pantry Pal', ings: ['Eggs', 'Spinach', 'Cherry tomatoes', 'Cheddar', 'Onion'], steps: ['Heat the oven to 375°F. Whisk 6 eggs with a pinch of salt.', 'Soften a chopped onion in an oven-safe pan, then wilt the spinach.', 'Add halved tomatoes, pour in the eggs and top with cheddar.', 'Bake 12 to 15 minutes, until just set.'] },
+      { id: 'quesadilla', title: 'Spinach Cheese Quesadillas', time: 15, serves: 2, by: 'Pantry Pal', ings: ['Tortillas', 'Spinach', 'Cheddar', 'Garlic'], steps: ['Cook garlic and spinach in a pan until wilted.', 'Fill tortillas with the spinach and cheddar, then fold.', 'Crisp in a dry pan, 2 to 3 minutes per side.'] },
+      { id: 'chickenrice', title: 'Garlic Chicken & Rice', time: 40, serves: 4, by: 'Pantry Pal', ings: ['Chicken thighs', 'Rice', 'Garlic', 'Onion'], steps: ['Start the rice.', 'Season the chicken and sear skin-side down until crisp.', 'Add sliced onion and garlic, cover and cook through.', 'Serve over rice with the pan juices.'] },
+      { id: 'friedrice', title: 'Veggie Fried Rice', time: 20, serves: 2, by: 'Pantry Pal', ings: ['Rice', 'Eggs', 'Onion', 'Garlic', 'Frozen peas'], steps: ['Scramble the eggs in a hot pan and set aside.', 'Fry onion, garlic and peas.', 'Add cold rice and stir-fry until hot.', 'Fold the eggs back in and season.'] },
+      { id: 'pasta', title: 'Creamy Tomato Pasta', time: 30, serves: 3, by: 'Pantry Pal', ings: ['Pasta', 'Cherry tomatoes', 'Milk', 'Garlic'], steps: ['Boil the pasta.', 'Cook tomatoes with garlic until they burst.', 'Stir in milk and simmer to thicken.', 'Toss with the pasta and a splash of pasta water.'] },
+      { id: 'smoothie', title: 'Green Smoothie', time: 5, serves: 1, by: 'Pantry Pal', ings: ['Spinach', 'Milk', 'Banana'], steps: ['Add spinach, milk and banana to a blender.', 'Blend until smooth.'] },
+      { id: 'orzo', title: 'Lemon Orzo with Greens', time: 25, serves: 2, by: 'Maya', friend: true, ings: ['Orzo', 'Spinach', 'Lemon', 'Garlic'], steps: ['Toast orzo in a little oil, then simmer in salted water.', 'Stir in garlic and spinach until wilted.', 'Finish with lemon zest and juice.'] },
+      { id: 'tacos', title: 'Sheet-pan Chicken Tacos', time: 35, serves: 4, by: 'Jordan', friend: true, ings: ['Chicken thighs', 'Tortillas', 'Onion', 'Lime'], steps: ['Toss chicken and onion with spices on a sheet pan.', 'Roast at 425°F for 20 minutes.', 'Slice and serve in warm tortillas with lime.'] }
+    ];
+    this.FRIENDS = ['Maya', 'Jordan', 'Sam', 'Priya'];
+    this.state = {
+      screen: 'home', stack: [], showNotice: true, onboard: 0, showGoal: false, goalDone: false, goalDoneShown: false,
+      addSheet: false, shareFor: null, shareTo: [], toast: '',
+      pantry: [
+        { id: 1, name: 'Chicken thighs', loc: 'Fridge', qty: '1 lb', days: 1 },
+        { id: 2, name: 'Cherry tomatoes', loc: 'Counter', qty: '1 pint', days: 2 },
+        { id: 3, name: 'Milk', loc: 'Fridge', qty: 'Half gallon', days: 3 },
+        { id: 4, name: 'Tortillas', loc: 'Pantry', qty: '8', days: 5 },
+        { id: 5, name: 'Eggs', loc: 'Fridge', qty: '6', days: 12 },
+        { id: 6, name: 'Cheddar', loc: 'Fridge', qty: '1 block', days: 14 },
+        { id: 7, name: 'Onion', loc: 'Pantry', qty: '3', days: 18 },
+        { id: 8, name: 'Garlic', loc: 'Pantry', qty: '1 head', days: 21 },
+        { id: 9, name: 'Frozen peas', loc: 'Freezer', qty: '1 bag', days: 120 },
+        { id: 10, name: 'Rice', loc: 'Pantry', qty: '2 lb', days: 200 }
+      ],
+      nextId: 20, saved: [], shared: [], mine: [], used: 0, tossed: 0,
+      itemId: null, recipeId: null, cookStep: 0, useUp: [],
+      f: { name: '', qty: '', loc: 'Fridge', days: 5 }, scanLoc: 'Fridge', scanDays: 5,
+      q: '', filter: 'all', seg: 'discover', loc: 'All',
+      d: { title: '', time: 30, serves: 2, ings: [], other: '', steps: [], stepText: '' }, cStep: 1,
+      reminders: true, lead: 2, digest: false, diet: []
+    };
+  }
+
+  componentDidUpdate() {
+    const g = this.goal();
+    if (g.done === 3 && !this.state.goalDoneShown) this.setState({ goalDone: true, goalDoneShown: true, showGoal: false });
+  }
+  componentWillUnmount() { clearTimeout(this.tt); }
+
+  match(a, b) { a = a.toLowerCase(); b = b.toLowerCase(); return a === b || a.includes(b) || b.includes(a); }
+  pItem(ing) { return this.state.pantry.find(p => this.match(p.name, ing)); }
+  has(ing) { return !!this.pItem(ing); }
+  soon(ing) { const p = this.pItem(ing); return !!p && p.days <= 3; }
+  all() { return this.RECIPES.concat(this.state.mine); }
+  find(id) { return this.all().find(r => r.id === id); }
+  spinach(id) { const r = this.find(id); return !!r && r.ings.some(i => i.toLowerCase().includes('spinach')); }
+  goal() {
+    const s = this.state;
+    const g1 = s.pantry.some(p => p.name.toLowerCase().includes('spinach'));
+    const g2 = s.saved.some(id => this.spinach(id));
+    const g3 = s.shared.some(id => this.spinach(id));
+    return { g1, g2, g3, done: [g1, g2, g3].filter(Boolean).length };
+  }
+  expLabel(d) {
+    if (d <= 0) return 'Today';
+    if (d === 1) return 'Tomorrow';
+    if (d <= 10) return d + ' days';
+    if (d <= 60) return Math.round(d / 7) + ' wks';
+    return 'Months';
+  }
+  go(screen, extra) {
+    this.setState(st => Object.assign({ stack: st.stack.concat([{ screen: st.screen, itemId: st.itemId, recipeId: st.recipeId, cStep: st.cStep }]), screen, addSheet: false }, extra || {}));
+  }
+  back() {
+    this.setState(st => {
+      if (st.screen === 'create' && st.cStep > 1) return { cStep: st.cStep - 1 };
+      if (!st.stack.length) return { screen: 'home' };
+      const p = st.stack[st.stack.length - 1];
+      return { stack: st.stack.slice(0, -1), screen: p.screen, itemId: p.itemId, recipeId: p.recipeId, cStep: p.cStep };
+    });
+  }
+  tab(t, extra) { this.setState(Object.assign({ screen: t, stack: [], addSheet: false }, extra || {})); }
+  say(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2600); }
+  setD(patch) { this.setState(st => ({ d: Object.assign({}, st.d, patch) })); }
+  setF(patch) { this.setState(st => ({ f: Object.assign({}, st.f, patch) })); }
+  addItem(item, msg) {
+    this.setState(st => ({ pantry: st.pantry.concat([Object.assign({ id: st.nextId }, item)]), nextId: st.nextId + 1, screen: 'pantry', stack: [], loc: 'All', f: { name: '', qty: '', loc: 'Fridge', days: 5 } }));
+    this.say(msg);
+  }
+  removeItem(id, kind) {
+    const p = this.state.pantry.find(x => x.id === id);
+    this.setState(st => ({ pantry: st.pantry.filter(x => x.id !== id), used: st.used + (kind === 'used' ? 1 : 0), tossed: st.tossed + (kind === 'tossed' ? 1 : 0) }));
+    this.back();
+    this.say(kind === 'used' ? 'Nice! ' + p.name + ' used up.' : p.name + ' removed. We will remind you sooner next time.');
+  }
+  card(r) {
+    const have = r.ings.filter(i => this.has(i)).length;
+    const soonList = r.ings.filter(i => this.soon(i));
+    const full = have === r.ings.length;
+    return Object.assign({}, r, {
+      have, total: r.ings.length, full,
+      matchText: full ? 'You have everything' : 'You have ' + have + ' of ' + r.ings.length,
+      usesSoon: soonList.length > 0,
+      soonText: soonList.length ? 'Uses up ' + soonList.join(', ').toLowerCase() : '',
+      timeText: r.time + ' min',
+      open: () => this.go('recipe', { recipeId: r.id })
+    });
+  }
+  chipsOf(options, current, onPick, fmt) {
+    return options.map(o => ({ label: fmt ? fmt(o) : o, on: o === current, cls: o === current ? 'on' : '', pick: () => onPick(o) }));
+  }
+
+  renderVals() {
+    const st = this.state;
+    const scr = st.screen;
+    const s = {};
+    ['home', 'pantry', 'item', 'scan', 'scanResult', 'manual', 'recipes', 'recipe', 'cook', 'useup', 'create', 'shared', 'notifs', 'profile', 'reminders', 'diet', 'help'].forEach(k => { s[k] = scr === k; });
+    const group = { home: 'home', notifs: 'home', help: 'home', pantry: 'pantry', item: 'pantry', manual: 'pantry', scanResult: 'pantry', recipes: 'recipes', recipe: 'recipes', profile: 'profile', shared: 'profile', reminders: 'profile', diet: 'profile' }[scr] || '';
+    const tc = { home: group === 'home' ? 'on' : '', pantry: group === 'pantry' ? 'on' : '', recipes: group === 'recipes' ? 'on' : '', profile: group === 'profile' ? 'on' : '' };
+    const showTabs = ['scan', 'cook', 'create', 'useup'].indexOf(scr) < 0;
+
+    const sorted = st.pantry.slice().sort((a, b) => a.days - b.days);
+    const row = p => Object.assign({}, p, { exp: this.expLabel(p.days), soon: p.days <= 3, tagCls: p.days <= 3 ? 'warn' : '', sub: p.loc + (p.qty ? ' · ' + p.qty : ''), open: () => this.go('item', { itemId: p.id }) });
+    const soonItems = sorted.filter(p => p.days <= 3).map(row);
+    const pantryRows = sorted.filter(p => st.loc === 'All' || p.loc === st.loc).map(row);
+
+    const own = this.RECIPES.filter(r => !r.friend).map(r => this.card(r));
+    const topRecipes = own.slice().sort((a, b) => (b.have / b.total + (b.usesSoon ? 0.3 : 0)) - (a.have / a.total + (a.usesSoon ? 0.3 : 0))).slice(0, 3);
+
+    // item
+    const ip = st.pantry.find(p => p.id === st.itemId);
+    const item = ip ? Object.assign(row(ip), { lower: ip.name.toLowerCase(), expLong: ip.days <= 1 ? 'Expires ' + this.expLabel(ip.days).toLowerCase() : 'Good for ' + this.expLabel(ip.days) }) : { name: '', lower: '', sub: '', exp: '', expLong: '', tagCls: '' };
+    const itemRecipes = ip ? this.all().filter(r => r.ings.some(i => this.match(i, ip.name))).map(r => this.card(r)) : [];
+
+    // recipes tab
+    let base = st.seg === 'discover' ? this.RECIPES.filter(r => !r.friend) : st.seg === 'saved' ? st.saved.map(id => this.find(id)).filter(Boolean) : st.mine;
+    let list = base.map(r => this.card(r));
+    const q = st.q.trim().toLowerCase();
+    if (q && st.seg !== 'mine') list = list.filter(r => r.title.toLowerCase().includes(q) || r.ings.some(i => i.toLowerCase().includes(q)));
+    if (st.seg !== 'mine') {
+      if (st.filter === 'soon') list = list.filter(r => r.usesSoon);
+      if (st.filter === 'quick') list = list.filter(r => r.time <= 20);
+      if (st.filter === 'ready') list = list.filter(r => r.full);
+    }
+    if (st.seg === 'discover') list.sort((a, b) => b.have / b.total - a.have / a.total);
+    const segs = [['discover', 'Discover'], ['saved', 'Saved'], ['mine', 'Mine']].map(g => ({ label: g[1], on: st.seg === g[0], cls: st.seg === g[0] ? 'on' : '', pick: () => this.setState({ seg: g[0] }) }));
+    const filters = [['all', 'All'], ['soon', 'Uses what’s expiring'], ['quick', '20 min or less'], ['ready', 'I have everything']];
+    const filterChips = filters.map(f => ({ label: f[1], on: st.filter === f[0], cls: st.filter === f[0] ? 'on' : '', pick: () => this.setState({ filter: f[0] }) }));
+    let emptyTitle = 'No matches', emptyText = 'Try a different search or filter.';
+    if (!q && st.filter === 'all' && st.seg === 'saved') { emptyTitle = 'No saved recipes yet'; emptyText = 'Tap the heart on any recipe to keep it here.'; }
+    if (st.seg === 'mine') { emptyTitle = 'You have not written any recipes yet'; emptyText = 'Your own recipes live here, ready to share.'; }
+
+    // recipe detail
+    const rr = this.find(st.recipeId);
+    let rec = { title: '', ingRows: [], stepRows: [] };
+    if (rr) {
+      const c = this.card(rr);
+      const saved = st.saved.indexOf(rr.id) >= 0;
+      rec = Object.assign(c, {
+        saved, savedCls: saved ? 'on' : '', heartFill: saved ? 'currentColor' : 'none', saveLabel: saved ? 'Saved' : 'Save',
+        pct: Math.round(c.have / c.total * 100) + '%',
+        ingRows: rr.ings.map(i => { const hv = this.has(i), sn = this.soon(i); return { name: i, cls: hv ? 'on' : '', note: hv ? (sn ? 'use soon' : 'in pantry') : 'need to buy', noteCls: hv ? 'muted' : '' }; }),
+        stepRows: rr.steps.map((t, i) => ({ n: i + 1, t }))
+      });
+    }
+    const steps = rr ? rr.steps : [''];
+    const cook = { n: st.cookStep + 1, total: steps.length, text: steps[st.cookStep] || '', first: st.cookStep === 0, pct: Math.round((st.cookStep + 1) / steps.length * 100) + '%', nextLabel: st.cookStep >= steps.length - 1 ? 'I’m done cooking' : 'Next step' };
+
+    const useCands = rr ? st.pantry.filter(p => rr.ings.some(i => this.match(i, p.name))) : [];
+    const useRows = useCands.map(p => { const on = st.useUp.indexOf(p.id) >= 0; return { name: p.name, exp: this.expLabel(p.days), on, cls: on ? 'on' : '', toggle: () => this.setState(x => ({ useUp: on ? x.useUp.filter(i => i !== p.id) : x.useUp.concat([p.id]) })) }; });
+
+    // create
+    const d = st.d;
+    const c = {
+      step: st.cStep, s1: st.cStep === 1, s2: st.cStep === 2, s3: st.cStep === 3, s4: st.cStep === 4,
+      stepName: ['', 'Basics', 'Ingredients', 'Steps', 'Review'][st.cStep], pct: (st.cStep * 25) + '%',
+      noTitle: !d.title.trim(), noOther: !d.other.trim(), noIngs: d.ings.length === 0, noSteps: d.steps.length === 0, noStepText: !d.stepText.trim(),
+      ingCount: d.ings.length, stepCount: d.steps.length, nextStepN: d.steps.length + 1, timeText: d.time + ' min'
+    };
+    const timeChips = this.chipsOf([15, 30, 45, 60], d.time, v => this.setD({ time: v }), v => v + ' min');
+    const dPantryChips = sorted.map(p => { const on = d.ings.indexOf(p.name) >= 0; return { label: p.name + (p.days <= 3 ? ' · soon' : ''), on, cls: on ? 'on' : '', pick: () => this.setD({ ings: on ? d.ings.filter(x => x !== p.name) : d.ings.concat([p.name]) }) }; });
+    const dIngRows = d.ings.map(n => ({ name: n, remove: () => this.setD({ ings: d.ings.filter(x => x !== n) }) }));
+    const dStepRows = d.steps.map((t, i) => ({ n: i + 1, t, remove: () => this.setD({ steps: d.steps.filter((_, j) => j !== i) }) }));
+
+    // share
+    const shareR = this.find(st.shareFor);
+    const friendRows = this.FRIENDS.map(n => { const on = st.shareTo.indexOf(n) >= 0; return { name: n, initial: n[0], on, cls: on ? 'on' : '', toggle: () => this.setState(x => ({ shareTo: on ? x.shareTo.filter(y => y !== n) : x.shareTo.concat([n]) })) }; });
+
+    // goal
+    const g = this.goal();
+    const goalRows = [
+      { done: g.g1, text: 'Get spinach into your pantry', hint: 'Scan it or type it in.' },
+      { done: g.g2, text: 'Save a recipe that uses spinach', hint: 'Find one, or write your own.' },
+      { done: g.g3, text: 'Share that recipe with a friend', hint: 'Look for the share icon.' }
+    ].map(x => Object.assign(x, { cls: x.done ? 'on' : '' }));
+
+    // onboarding
+    const OB = [
+      { art: 'illustration: groceries into phone', title: 'Log what is in your kitchen', text: 'Scan a barcode or type an item. It takes a few seconds.' },
+      { art: 'illustration: fridge with alert', title: 'See what is about to go bad', text: 'Items that expire soon float to the top, and we will nudge you before it is too late.' },
+      { art: 'illustration: pan + share arrow', title: 'Cook it, save it, share it', text: 'Get recipes that use what you have, write your own, and send them to friends.' }
+    ];
+    const obi = Math.max(0, Math.min(2, st.onboard - 1));
+    const ob = Object.assign({}, OB[obi], { cta: obi === 2 ? 'Start using Pantry Pal' : 'Next', dots: OB.map((_, i) => ({ cls: i === obi ? 'on' : '' })) });
+
+    // notifications
+    const notifRows = soonItems.map(p => ({ title: p.name + (p.days <= 1 ? ' expires ' + p.exp.toLowerCase() : ' expires in ' + p.exp), sub: 'Tap to see recipes that use it', cls: '', open: p.open }))
+      .concat([{ title: 'Maya shared a recipe with you', sub: 'Lemon Orzo with Greens', cls: 'on', open: () => this.go('recipe', { recipeId: 'orzo' }) }]);
+
+    const friendRecipes = this.RECIPES.filter(r => r.friend).map(r => this.card(r));
+    const sentRows = st.shared.map(id => this.find(id)).filter(Boolean).map(r => ({ title: r.title, open: () => this.go('recipe', { recipeId: r.id }) }));
+
+    const LOCS = ['Fridge', 'Freezer', 'Pantry', 'Counter'];
+    const DAYS = [2, 5, 7, 14, 30];
+    const dayFmt = v => v === 7 ? '1 week' : v === 14 ? '2 weeks' : v === 30 ? '1 month' : v + ' days';
+
+    const h = {
+      stop: e => e.stopPropagation(),
+      back: () => this.back(),
+      tabHome: () => this.tab('home'), tabPantry: () => this.tab('pantry'), tabRecipes: () => this.tab('recipes'), tabProfile: () => this.tab('profile'),
+      openAdd: () => this.setState({ addSheet: true }), closeAdd: () => this.setState({ addSheet: false }),
+      openGoal: () => this.setState({ showGoal: true }), closeGoal: () => this.setState({ showGoal: false }),
+      openHelp: () => this.go('help'), openHelpScreen: () => this.go('help'),
+      openNotifs: () => this.go('notifs'),
+      goScan: () => this.go('scan'), goManual: () => this.go('manual'),
+      goManualFromScan: () => this.setState({ screen: 'manual' }),
+      simScan: () => this.setState({ screen: 'scanResult', scanLoc: 'Fridge', scanDays: 5 }),
+      rescan: () => this.setState({ screen: 'scan' }),
+      addScanned: () => this.addItem({ name: 'Baby spinach', qty: '1 bag', loc: st.scanLoc, days: st.scanDays }, 'Baby spinach added to your pantry'),
+      fName: e => this.setF({ name: e.target.value }), fQty: e => this.setF({ qty: e.target.value }),
+      addManual: () => { if (st.f.name.trim()) this.addItem({ name: st.f.name.trim(), qty: st.f.qty.trim(), loc: st.f.loc, days: st.f.days }, st.f.name.trim() + ' added to your pantry'); },
+      markUsed: () => this.removeItem(st.itemId, 'used'), markTossed: () => this.removeItem(st.itemId, 'tossed'),
+      setQ: e => this.setState({ q: e.target.value }),
+      toggleSave: () => { const on = st.saved.indexOf(st.recipeId) >= 0; this.setState({ saved: on ? st.saved.filter(x => x !== st.recipeId) : st.saved.concat([st.recipeId]) }); this.say(on ? 'Removed from saved' : 'Saved. Find it under Recipes › Saved.'); },
+      openShare: () => this.setState({ shareFor: st.recipeId, shareTo: [] }),
+      closeShare: () => this.setState({ shareFor: null }),
+      sendShare: () => { const names = st.shareTo.join(' & '); this.setState(x => ({ shared: x.shared.indexOf(x.shareFor) >= 0 ? x.shared : x.shared.concat([x.shareFor]), shareFor: null })); this.say('Sent to ' + names + ' (pretend)'); },
+      copyLink: () => { this.setState(x => ({ shared: x.shared.indexOf(x.shareFor) >= 0 ? x.shared : x.shared.concat([x.shareFor]), shareFor: null })); this.say('Link copied (pretend — no real link yet)'); },
+      startCook: () => this.go('cook', { cookStep: 0 }),
+      cookPrev: () => this.setState({ cookStep: Math.max(0, st.cookStep - 1) }),
+      cookNext: () => { if (st.cookStep >= steps.length - 1) this.setState({ screen: 'useup', useUp: useCands.map(p => p.id) }); else this.setState({ cookStep: st.cookStep + 1 }); },
+      confirmUse: () => { const n = st.useUp.length; this.setState(x => ({ pantry: x.pantry.filter(p => x.useUp.indexOf(p.id) < 0), used: x.used + n, useUp: [], screen: 'home', stack: [] })); this.say(n ? 'Pantry updated. ' + n + ' item' + (n > 1 ? 's' : '') + ' used up!' : 'Nothing changed'); },
+      goCreate: () => this.go('create', { cStep: 1, d: { title: '', time: 30, serves: 2, ings: [], other: '', steps: [], stepText: '' } }),
+      exitCreate: () => this.setState(x => { const stack = x.stack.slice(); let p = stack.pop(); while (p && p.screen === 'create') p = stack.pop(); return { stack, screen: p ? p.screen : 'home', itemId: p ? p.itemId : null, recipeId: p ? p.recipeId : null }; }),
+      cNext: () => this.setState(x => ({ cStep: Math.min(4, x.cStep + 1) })),
+      dTitle: e => this.setD({ title: e.target.value }), dOther: e => this.setD({ other: e.target.value }), dStep: e => this.setD({ stepText: e.target.value }),
+      addOther: () => { const v = d.other.trim(); if (v && d.ings.indexOf(v) < 0) this.setD({ ings: d.ings.concat([v]), other: '' }); },
+      addStep: () => { const v = d.stepText.trim(); if (v) this.setD({ steps: d.steps.concat([v]), stepText: '' }); },
+      servesDown: () => this.setD({ serves: Math.max(1, d.serves - 1) }), servesUp: () => this.setD({ serves: Math.min(12, d.serves + 1) }),
+      photoNope: () => this.say('Photos are not part of this prototype yet'),
+      saveRecipe: () => { const id = 'mine' + st.nextId; const r = { id, title: d.title.trim(), time: d.time, serves: d.serves, by: 'You', ings: d.ings, steps: d.steps }; this.setState(x => ({ mine: x.mine.concat([r]), saved: x.saved.concat([id]), nextId: x.nextId + 1, screen: 'recipe', recipeId: id, stack: [{ screen: 'recipes' }], seg: 'mine' })); this.say('Saved to My recipes'); },
+      goShared: () => this.go('shared'), goMine: () => this.tab('recipes', { seg: 'mine' }),
+      goReminders: () => this.go('reminders'), goDiet: () => this.go('diet'),
+      toggleRem: () => this.setState({ reminders: !st.reminders }), toggleDigest: () => this.setState({ digest: !st.digest }),
+      saveDiet: () => { this.back(); this.say('Preferences saved'); },
+      replayIntro: () => this.setState({ onboard: 1 }),
+      startTour: () => this.setState({ showNotice: false, onboard: 1 }),
+      skipTour: () => this.setState({ showNotice: false, onboard: 0 }),
+      skipOnboard: () => this.setState({ onboard: 0 }),
+      nextOnboard: () => this.setState({ onboard: st.onboard >= 3 ? 0 : st.onboard + 1 }),
+      closeDone: () => this.setState({ goalDone: false })
+    };
+
+    return {
+      s, tc, showTabs, h,
+      goal: g, goalRows,
+      hasSoon: soonItems.length > 0, noSoon: soonItems.length === 0, soonCount: soonItems.length, soonItems,
+      topRecipes,
+      pantryCount: st.pantry.length, pantryRows, pantryEmpty: pantryRows.length === 0,
+      locChips: this.chipsOf(['All'].concat(LOCS), st.loc, v => this.setState({ loc: v })),
+      item, itemRecipes, itemNoRecipes: itemRecipes.length === 0,
+      scanLocChips: this.chipsOf(LOCS, st.scanLoc, v => this.setState({ scanLoc: v })),
+      scanDayChips: this.chipsOf([3, 5, 7], st.scanDays, v => this.setState({ scanDays: v }), dayFmt),
+      f: Object.assign({}, st.f, { empty: !st.f.name.trim() }),
+      quickPicks: ['Spinach', 'Bananas', 'Yogurt', 'Bread'].map(n => ({ label: n, pick: () => this.setF({ name: n }) })),
+      fLocChips: this.chipsOf(LOCS, st.f.loc, v => this.setF({ loc: v })),
+      fDayChips: this.chipsOf(DAYS, st.f.days, v => this.setF({ days: v }), dayFmt),
+      segs, segMine: st.seg === 'mine', showSearch: st.seg !== 'mine', q: st.q, filterChips,
+      recipeList: list, recipeEmpty: list.length === 0, emptyTitle, emptyText,
+      rec, cook, useRows, useEmpty: useRows.length === 0,
+      c, d, timeChips, dPantryChips, dIngRows, dStepRows,
+      shareOpen: !!shareR, shareTitle: shareR ? shareR.title : '', friendRows, noShareTo: st.shareTo.length === 0,
+      sendLabel: st.shareTo.length ? 'Send to ' + st.shareTo.length + (st.shareTo.length > 1 ? ' friends' : ' friend') : 'Pick someone to send to',
+      friendRecipes, sentRows, hasSentShares: sentRows.length > 0,
+      notifRows,
+      stats: { used: st.used, tossed: st.tossed, saved: st.saved.length },
+      rem: { on: st.reminders, cls: st.reminders ? 'on' : '' }, dig: { on: st.digest, cls: st.digest ? 'on' : '' },
+      leadChips: this.chipsOf([1, 2, 3], st.lead, v => this.setState({ lead: v }), v => v === 1 ? '1 day before' : v + ' days before'),
+      dietChips: ['Vegetarian', 'Vegan', 'Gluten-free', 'Dairy-free', 'Nut-free'].map(n => { const on = st.diet.indexOf(n) >= 0; return { label: n, on, cls: on ? 'on' : '', pick: () => this.setState(x => ({ diet: on ? x.diet.filter(y => y !== n) : x.diet.concat([n]) })) }; }),
+      addSheet: st.addSheet, showGoal: st.showGoal, showNotice: st.showNotice, goalDone: st.goalDone,
+      inOnboard: st.onboard > 0 && !st.showNotice, ob,
+      hasToast: !!st.toast, toast: st.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
