@@ -4,7 +4,17 @@ A clickable phone prototype for a college student who shares a kitchen and does 
 
 This draft is separate from Senah’s wireframe in the group repo (`wireframes/senah-pantry-pal-prototype`). Do not replace that folder. If the group wants this version in GitHub, copy this project into a new folder, such as `drafts/pantry-pal/`.
 
-## Run it
+## View it online (no install)
+
+After GitHub Pages is enabled for this repo, the hosted draft is at:
+
+[https://mjpalm13.github.io/Food-Waste-and-Recipe-Tracker/](https://mjpalm13.github.io/Food-Waste-and-Recipe-Tracker/)
+
+Demo mode (sample receipt): add `?demo=1` to that URL.
+
+Only this Madison prototype folder is published. Senah’s wireframe and the rest of the repo are unchanged.
+
+## Run it locally
 
 ```bash
 npm install

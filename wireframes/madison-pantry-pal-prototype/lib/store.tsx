@@ -434,24 +434,25 @@ function reducer(state: State, action: Action): State {
     case "save-draft-line": {
       const name = action.line.name.trim()
       const qty = action.line.qty
-      const draft = state.draft.map((line) =>
-        line.id === state.promptId
-          ? {
-              ...line,
-              name,
-              qty,
-              unit: action.line.unit.trim() || "item",
-              days: action.line.days,
-              location: action.line.location,
-              kind: line.kind === "ignored" ? line.kind : name ? (qty === null ? "produce" : "food") : "unknown",
-              needsName: !name,
-              needsQuantity: qty === null,
-              settledName: Boolean(name),
-              settledQty: qty !== null,
-              include: true,
-            }
-          : line
-      )
+      const draft = state.draft.map((line) => {
+        if (line.id !== state.promptId) return line
+        const kind: DraftLine["kind"] =
+          line.kind === "ignored" ? "ignored" : name ? (qty === null ? "produce" : "food") : "unknown"
+        return {
+          ...line,
+          name,
+          qty,
+          unit: action.line.unit.trim() || "item",
+          days: action.line.days,
+          location: action.line.location,
+          kind,
+          needsName: !name,
+          needsQuantity: qty === null,
+          settledName: Boolean(name),
+          settledQty: qty !== null,
+          include: true,
+        }
+      })
       const stack = state.stack.slice()
       stack.pop()
       return say({ ...state, draft, screen: "review", stack, promptId: null }, "Food updated.")
