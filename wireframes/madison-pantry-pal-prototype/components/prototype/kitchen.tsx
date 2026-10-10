@@ -1005,7 +1005,9 @@ export function PartsScreen() {
         </div>
         <Sketch label="photo" className="h-20" />
         <LocationChips value="Fridge" onChange={() => undefined} />
-        <a className="text-sm font-semibold text-primary underline" href="/library">Open the full library page</a>
+        <a className="text-sm font-semibold text-primary underline" href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/library`}>
+          Open the full library page
+        </a>
       </Scroll>
     </Screen>
   )

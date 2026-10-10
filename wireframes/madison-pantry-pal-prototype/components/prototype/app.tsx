@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { AccountScreen, AddDraftScreen, AddedScreen, CameraScreen, EditDraftScreen, LocationScreen, LoginScreen, ProduceScreen, ReadingScreen, RemindScreen, ReviewScreen, SampleScreen, UnknownScreen, UploadScreen, ValueScreen } from "@/components/prototype/receipt"
 import { AboutScreen, AddItemScreen, CookedScreen, CookScreen, EditItemScreen, EditProfileScreen, FixLocationsScreen, HomeScreen, ItemScreen, NeedsScreen, NotificationsScreen, PantryScreen, PartsScreen, ProfileScreen, RecipeScreen, RecipesScreen, RemindersScreen } from "@/components/prototype/kitchen"
 import { LogMealScreen, MealLeftScreen, MealsScreen } from "@/components/prototype/meals"
@@ -91,9 +92,9 @@ export default function PrototypeApp() {
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-[#e4ddd0] px-3 py-4 text-[#2b2a27]">
         <p className="text-center text-sm">
           Pantry Pal · low-fidelity phone draft ·{" "}
-          <a className="font-semibold underline" href="/library">
+          <Link className="font-semibold underline" href="/library">
             Design library
-          </a>
+          </Link>
         </p>
         <Phone>
           <Screens />

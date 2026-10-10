@@ -43,13 +43,18 @@ function normalize(label: string) {
   return label.trim().toLowerCase()
 }
 
+function withBase(path: string) {
+  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? ""
+  return `${base}${path}`
+}
+
 export function imageForLabel(label: string): string | null {
   const key = normalize(label)
   if (!key) return null
-  if (RECIPE[key]) return RECIPE[key]
-  if (FOOD[key]) return FOOD[key]
+  if (RECIPE[key]) return withBase(RECIPE[key])
+  if (FOOD[key]) return withBase(FOOD[key])
   for (const [name, src] of Object.entries(FOOD)) {
-    if (key.includes(name) || name.includes(key)) return src
+    if (key.includes(name) || name.includes(key)) return withBase(src)
   }
   return null
 }

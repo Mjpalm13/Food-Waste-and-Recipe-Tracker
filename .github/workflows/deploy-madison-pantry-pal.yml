@@ -1,0 +1,59 @@
+name: Deploy Madison Pantry Pal
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wireframes/madison-pantry-pal-prototype/**"
+      - ".github/workflows/deploy-madison-pantry-pal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: madison-pantry-pal-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wireframes/madison-pantry-pal-prototype
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: wireframes/madison-pantry-pal-prototype/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build static site
+        run: npm run build:pages
+        env:
+          GITHUB_PAGES: "true"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: wireframes/madison-pantry-pal-prototype/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
