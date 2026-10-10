@@ -4,9 +4,11 @@ import { createContext, useContext, useEffect, useReducer, useRef, type ReactNod
 import {
   interpretLine,
   isSoon,
+  keepDaysAt,
   RECIPES,
   SAMPLE_LINES,
   sameFood,
+  soonLabel,
   usesSoonFood,
   type LocationName,
   type ReminderWhen,
@@ -63,6 +65,7 @@ export const initialState: State = {
   mealQueue: [],
   mealAnswers: [],
   tipIndex: 0,
+  demoMode: false,
 }
 
 type Persisted = Pick<
@@ -239,9 +242,11 @@ function changeQty(item: PantryItem, removeNote: string): { item: PantryItem | n
 }
 
 type Action =
-  | { type: "hydrate"; saved: Persisted | null }
+  | { type: "hydrate"; saved: Persisted | null; demoMode: boolean }
   | { type: "toast-clear" }
   | { type: "notice"; open: boolean }
+  | { type: "set-demo"; on: boolean }
+  | { type: "begin-receipt" }
   | { type: "goal"; open: boolean }
   | { type: "goal-done-close" }
   | { type: "look" }
@@ -253,9 +258,14 @@ type Action =
   | { type: "show-review" }
   | { type: "toggle-line"; id: string }
   | { type: "set-location-draft"; id: string; location: LocationName | null }
+  | { type: "set-days-draft"; id: string; days: number | null }
+  | { type: "open-draft-edit"; id: string }
+  | { type: "save-draft-line"; line: Pick<DraftLine, "name" | "qty" | "unit" | "days" | "location"> }
+  | { type: "add-draft-line"; line: Pick<DraftLine, "name" | "qty" | "unit" | "days" | "location"> }
   | { type: "continue-review" }
   | { type: "save-unknown"; name: string }
   | { type: "defer-unknown" }
+  | { type: "delete-unknown" }
   | { type: "save-produce"; qty: number }
   | { type: "defer-produce" }
   | { type: "save-places" }
@@ -323,13 +333,14 @@ function enterHome(state: State): State {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "hydrate": {
-      if (!action.saved) return { ...state, ready: true }
+      if (!action.saved) return { ...state, ready: true, demoMode: action.demoMode }
       const saved = action.saved
       return {
         ...state,
         ...saved,
         meals: saved.meals ?? [],
         ready: true,
+        demoMode: action.demoMode,
         screen: saved.hasEntered ? "home" : "value",
         showNotice: !saved.hasEntered,
         stack: [],
@@ -339,6 +350,26 @@ function reducer(state: State, action: Action): State {
       return { ...state, toast: "" }
     case "notice":
       return { ...state, showNotice: action.open }
+    case "set-demo":
+      return { ...state, demoMode: action.on }
+    case "begin-receipt": {
+      const onReceipt =
+        state.screen === "value" ||
+        state.screen === "add" ||
+        state.screen === "camera" ||
+        state.screen === "upload" ||
+        state.screen === "sample" ||
+        state.screen === "reading" ||
+        state.screen === "review"
+      if (onReceipt) return { ...state, showNotice: false, showGoal: false }
+      return {
+        ...state,
+        showNotice: false,
+        showGoal: false,
+        screen: state.hasEntered || state.pantry.length > 0 ? "add" : "value",
+        stack: [],
+      }
+    }
     case "goal":
       return { ...state, showGoal: action.open }
     case "goal-done-close":
@@ -353,8 +384,18 @@ function reducer(state: State, action: Action): State {
       if (!previous) return { ...state, screen: state.hasEntered ? "home" : "value", stack: [] }
       return applyFrame({ ...state, stack }, previous)
     }
-    case "tab":
-      return { ...state, screen: action.screen, stack: [], showGoal: false, pendingToss: false }
+    case "tab": {
+      const wasRecipes = state.screen === "recipes" || state.screen === "recipe"
+      const toRecipes = action.screen === "recipes"
+      return {
+        ...state,
+        screen: action.screen,
+        stack: [],
+        showGoal: false,
+        pendingToss: false,
+        recipeSeg: wasRecipes || toRecipes ? "foryou" : state.recipeSeg,
+      }
+    }
     case "photo":
       return { ...state, photo: action.photo, photoSource: action.source }
     case "read": {
@@ -372,8 +413,73 @@ function reducer(state: State, action: Action): State {
     case "set-location-draft":
       return {
         ...state,
-        draft: state.draft.map((line) => (line.id === action.id ? { ...line, location: action.location } : line)),
+        draft: state.draft.map((line) => {
+          if (line.id !== action.id) return line
+          const days = keepDaysAt(line.name || line.raw, action.location) ?? line.days
+          return { ...line, location: action.location, days }
+        }),
       }
+    case "set-days-draft":
+      return {
+        ...state,
+        draft: state.draft.map((line) => (line.id === action.id ? { ...line, days: action.days } : line)),
+      }
+    case "open-draft-edit":
+      return {
+        ...state,
+        stack: state.stack.concat(frameOf(state)),
+        screen: "edit-draft",
+        promptId: action.id,
+      }
+    case "save-draft-line": {
+      const name = action.line.name.trim()
+      const qty = action.line.qty
+      const draft = state.draft.map((line) =>
+        line.id === state.promptId
+          ? {
+              ...line,
+              name,
+              qty,
+              unit: action.line.unit.trim() || "item",
+              days: action.line.days,
+              location: action.line.location,
+              kind: line.kind === "ignored" ? line.kind : name ? (qty === null ? "produce" : "food") : "unknown",
+              needsName: !name,
+              needsQuantity: qty === null,
+              settledName: Boolean(name),
+              settledQty: qty !== null,
+              include: true,
+            }
+          : line
+      )
+      const stack = state.stack.slice()
+      stack.pop()
+      return say({ ...state, draft, screen: "review", stack, promptId: null }, "Food updated.")
+    }
+    case "add-draft-line": {
+      const id = bump(state, "line")
+      const name = action.line.name.trim()
+      const qty = action.line.qty
+      const line: DraftLine = {
+        id: id.id,
+        raw: "Added by you",
+        price: "—",
+        kind: qty === null ? "produce" : "food",
+        name,
+        location: action.line.location,
+        days: action.line.days,
+        unit: action.line.unit.trim() || "item",
+        qty,
+        include: true,
+        needsName: false,
+        needsQuantity: qty === null,
+        settledName: true,
+        settledQty: qty !== null,
+      }
+      const stack = state.stack.slice()
+      stack.pop()
+      return say({ ...state, seq: id.seq, draft: state.draft.concat(line), screen: "review", stack, promptId: null }, `${name} added.`)
+    }
     case "continue-review": {
       const next = nextPrompt(state.draft)
       return { ...state, stack: state.stack.concat(frameOf(state)), screen: next.screen, promptId: next.promptId }
@@ -389,6 +495,11 @@ function reducer(state: State, action: Action): State {
       const draft = state.draft.map((line) => (line.id === state.promptId ? { ...line, settledName: true } : line))
       const next = nextPrompt(draft)
       return { ...state, draft, screen: next.screen, promptId: next.promptId }
+    }
+    case "delete-unknown": {
+      const draft = state.draft.filter((line) => line.id !== state.promptId)
+      const next = nextPrompt(draft)
+      return say({ ...state, draft, screen: next.screen, promptId: next.promptId }, "Removed from this receipt.")
     }
     case "save-produce": {
       const draft = state.draft.map((line) =>
@@ -446,7 +557,7 @@ function reducer(state: State, action: Action): State {
     case "tour-skip":
       return enterHome(state)
     case "tour-next":
-      if (state.tourStep >= 4) return enterHome(state)
+      if (state.tourStep >= 5) return enterHome(state)
       return { ...state, tourStep: state.tourStep + 1 }
     case "open-item": {
       const item = state.pantry.find((food) => food.id === action.id)
@@ -471,7 +582,7 @@ function reducer(state: State, action: Action): State {
       const on = state.savedIds.includes(state.recipeId)
       return say(
         { ...state, savedIds: on ? state.savedIds.filter((id) => id !== state.recipeId) : state.savedIds.concat(state.recipeId) },
-        on ? "Removed from Saved." : "Saved. Find it under Recipes, Saved."
+        on ? "Removed from favorites." : "Added to favorites. Find it under Recipes, My favorites."
       )
     }
     case "recipe-query":
@@ -576,13 +687,16 @@ function reducer(state: State, action: Action): State {
         screen: reminder.kind === "location" ? "fix-locations" : "needs",
       }
     }
-    case "set-item-location":
-      return {
-        ...state,
-        pantry: state.pantry.map((item) =>
-          item.id === action.id ? { ...item, location: action.location, needsLocation: !action.location } : item
-        ),
-      }
+    case "set-item-location": {
+      const target = state.pantry.find((item) => item.id === action.id)
+      const daysLeft = target ? keepDaysAt(target.name, action.location) ?? target.daysLeft : null
+      const pantry = state.pantry.map((item) => {
+        if (item.id !== action.id) return item
+        return { ...item, location: action.location, daysLeft: daysLeft ?? item.daysLeft, needsLocation: !action.location }
+      })
+      if (!target || !action.location) return { ...state, pantry }
+      return say({ ...state, pantry }, `${target.name}: about ${soonLabel(daysLeft).toLowerCase()} in the ${action.location.toLowerCase()}.`)
+    }
     case "finish-locations": {
       const unresolved = state.pantry.some((item) => !item.location)
       const clear = action.stop || !unresolved
@@ -712,6 +826,8 @@ type Api = {
   state: State
   openNotice: () => void
   closeNotice: () => void
+  enableDemo: () => void
+  beginReceipt: () => void
   openGoal: () => void
   closeGoal: () => void
   closeGoalDone: () => void
@@ -724,9 +840,14 @@ type Api = {
   finishRead: () => void
   toggleLine: (id: string) => void
   setDraftLocation: (id: string, location: LocationName | null) => void
+  setDraftDays: (id: string, days: number | null) => void
+  openDraftEdit: (id: string) => void
+  saveDraftLine: (line: Pick<DraftLine, "name" | "qty" | "unit" | "days" | "location">) => void
+  addDraftLine: (line: Pick<DraftLine, "name" | "qty" | "unit" | "days" | "location">) => void
   continueReview: () => void
   saveUnknown: (name: string) => void
   deferUnknown: () => void
+  deleteUnknown: () => void
   saveProduce: (qty: number) => void
   deferProduce: () => void
   savePlaces: () => void
@@ -794,11 +915,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated.current) return
     hydrated.current = true
+    const params = new URLSearchParams(window.location.search)
+    const demoParam = params.get("demo")
+    const demoMode = demoParam === "1" || demoParam === "true"
     try {
       const raw = localStorage.getItem(KEY)
-      dispatch({ type: "hydrate", saved: raw ? (JSON.parse(raw) as Persisted) : null })
+      dispatch({ type: "hydrate", saved: raw ? (JSON.parse(raw) as Persisted) : null, demoMode })
     } catch {
-      dispatch({ type: "hydrate", saved: null })
+      dispatch({ type: "hydrate", saved: null, demoMode })
     }
   }, [])
 
@@ -832,6 +956,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state,
     openNotice: () => dispatch({ type: "notice", open: true }),
     closeNotice: () => dispatch({ type: "notice", open: false }),
+    enableDemo: () => dispatch({ type: "set-demo", on: true }),
+    beginReceipt: () => dispatch({ type: "begin-receipt" }),
     openGoal: () => dispatch({ type: "goal", open: true }),
     closeGoal: () => dispatch({ type: "goal", open: false }),
     closeGoalDone: () => dispatch({ type: "goal-done-close" }),
@@ -844,9 +970,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     finishRead: () => dispatch({ type: "show-review" }),
     toggleLine: (id) => dispatch({ type: "toggle-line", id }),
     setDraftLocation: (id, location) => dispatch({ type: "set-location-draft", id, location }),
+    setDraftDays: (id, days) => dispatch({ type: "set-days-draft", id, days }),
+    openDraftEdit: (id) => dispatch({ type: "open-draft-edit", id }),
+    saveDraftLine: (line) => dispatch({ type: "save-draft-line", line }),
+    addDraftLine: (line) => dispatch({ type: "add-draft-line", line }),
     continueReview: () => dispatch({ type: "continue-review" }),
     saveUnknown: (name) => dispatch({ type: "save-unknown", name }),
     deferUnknown: () => dispatch({ type: "defer-unknown" }),
+    deleteUnknown: () => dispatch({ type: "delete-unknown" }),
     saveProduce: (qty) => dispatch({ type: "save-produce", qty }),
     deferProduce: () => dispatch({ type: "defer-produce" }),
     savePlaces: () => dispatch({ type: "save-places" }),

@@ -1,6 +1,6 @@
 "use client"
 
-import { AccountScreen, AddedScreen, CameraScreen, LocationScreen, LoginScreen, ProduceScreen, ReadingScreen, RemindScreen, ReviewScreen, SampleScreen, UnknownScreen, UploadScreen, ValueScreen } from "@/components/prototype/receipt"
+import { AccountScreen, AddDraftScreen, AddedScreen, CameraScreen, EditDraftScreen, LocationScreen, LoginScreen, ProduceScreen, ReadingScreen, RemindScreen, ReviewScreen, SampleScreen, UnknownScreen, UploadScreen, ValueScreen } from "@/components/prototype/receipt"
 import { AboutScreen, AddItemScreen, CookedScreen, CookScreen, EditItemScreen, EditProfileScreen, FixLocationsScreen, HomeScreen, ItemScreen, NeedsScreen, NotificationsScreen, PantryScreen, PartsScreen, ProfileScreen, RecipeScreen, RecipesScreen, RemindersScreen } from "@/components/prototype/kitchen"
 import { LogMealScreen, MealLeftScreen, MealsScreen } from "@/components/prototype/meals"
 import { Phone } from "@/components/prototype/shell"
@@ -22,6 +22,10 @@ function Screens() {
       return <ReadingScreen />
     case "review":
       return <ReviewScreen />
+    case "edit-draft":
+      return <EditDraftScreen />
+    case "add-draft":
+      return <AddDraftScreen />
     case "unknown":
       return <UnknownScreen />
     case "produce":

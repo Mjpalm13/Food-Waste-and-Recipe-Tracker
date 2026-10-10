@@ -2,9 +2,10 @@
 
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
+import { isSoon } from "@/lib/food"
 import { useApp } from "@/lib/store"
 import type { Screen } from "@/lib/types"
-import { BookOpen, Flag, Home, Refrigerator, UserRound, Utensils } from "lucide-react"
+import { Bell, BookOpen, Home, Refrigerator, UserRound, Utensils } from "lucide-react"
 import { tap } from "@/components/prototype/parts"
 
 const TABBED = new Set<Screen>([
@@ -29,9 +30,10 @@ const TABBED = new Set<Screen>([
 ])
 
 export function Phone({ children }: { children: ReactNode }) {
-  const { state, openNotice, openGoal, closeNotice, lookAround, closeGoal, closeGoalDone, skipTour, nextTour, cancelToss, toss, cancelLogout, logout, cancelReset, reset, go, tab } = useApp()
-  const done = [state.goal.addedReceipt, state.goal.openedSoon, state.goal.openedRecipe].filter(Boolean).length
+  const { state, openNotice, beginReceipt, skipTour, nextTour, cancelToss, toss, cancelLogout, logout, cancelReset, reset, tab, go } = useApp()
   const showTabs = TABBED.has(state.screen)
+  const bell =
+    state.pantry.filter((item) => isSoon(item.daysLeft)).length + state.reminders.filter((reminder) => !reminder.done).length
   const active =
     state.screen === "recipes" || state.screen === "recipe"
       ? "recipes"
@@ -52,81 +54,62 @@ export function Phone({ children }: { children: ReactNode }) {
           <span className="h-2.5 w-4 rounded-sm border border-current" />
         </span>
       </div>
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-dashed border-[#a39d90] bg-[#eae5da] px-2">
+      <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-dashed border-[#a39d90] bg-[#eae5da] px-2">
         <Button type="button" variant="outline" className="note-font h-9! rounded-lg border-dashed px-2 text-lg" data-testid="rough-draft" onClick={openNotice}>
           Rough draft
         </Button>
-        <Button type="button" variant="ghost" className="h-10! px-2 text-sm font-bold text-primary" data-testid="goal-button" onClick={openGoal}>
-          <Flag className="size-4" /> Goal: {done} of 3
-        </Button>
+        {showTabs ? (
+          <Button type="button" variant="ghost" className="relative size-9! px-0" aria-label="Notifications" onClick={() => go("notifications")}>
+            <Bell className="size-5" />
+            {bell > 0 ? (
+              <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9a4a12] px-1 text-[10px] font-bold text-white">{bell}</span>
+            ) : null}
+          </Button>
+        ) : null}
       </div>
       <div className="relative min-h-0 flex-1">
         <div className="absolute inset-0 overflow-hidden">{state.ready ? children : <p className="p-6 text-sm">Opening the draft…</p>}</div>
         {state.ready && state.showNotice ? (
-          <Modal label="This is a rough draft">
-            <p className="note-font text-2xl text-[#5a554c]">Rough draft</p>
-            <h2 className="text-xl font-extrabold">This is an early sketch, not the finished app.</h2>
-            <p className="text-sm">Boxes stand in for photos. The receipt reader uses a practice grocery list so every step can be tried, including a food we know, produce that needs a count, and a code we cannot read.</p>
-            <div className="rounded-xl bg-accent p-3 text-sm text-accent-foreground">
-              <b>Your goal:</b> add food from a receipt, open something that is about to go bad, and open a recipe that uses it. There is more than one way to do that.
-            </div>
-            <Button type="button" className={tap} data-testid="notice-start" onClick={closeNotice}>
+          <Modal label="Pantry Pal">
+            <h2 className="text-center text-xl font-extrabold">Pantry Pal</h2>
+            <p className="text-center text-sm">Manage your food with ease so less of it goes to waste!</p>
+            <Button type="button" className={tap} data-testid="notice-start" onClick={beginReceipt}>
               Add a receipt
             </Button>
-            <Button type="button" variant="outline" className={tap} data-testid="notice-look" onClick={lookAround}>
-              Look around first
-            </Button>
-          </Modal>
-        ) : null}
-        {state.ready && state.showGoal ? (
-          <Sheet label="Your goal" onClose={closeGoal}>
-            <h2 className="text-xl font-extrabold">Your goal</h2>
-            <GoalRow done={state.goal.addedReceipt} title="Add food from a receipt" hint="Camera, upload, or the sample receipt." />
-            <GoalRow done={state.goal.openedSoon} title="Open a food that is about to go bad" hint="Use Home, Pantry, or the bell." />
-            <GoalRow done={state.goal.openedRecipe} title="Open a recipe that uses that food" hint="From Home, Recipes, or the food itself." />
-            <Button
-              type="button"
-              className={tap}
-              onClick={() => {
-                closeGoal()
-                if (!state.goal.addedReceipt) go(state.hasEntered ? "add" : "value")
-                else if (!state.goal.openedSoon) tab("home")
-                else tab("recipes")
-              }}
-            >
-              {!state.goal.addedReceipt ? "Add a receipt" : !state.goal.openedSoon ? "See what is expiring" : "Find a recipe"}
-            </Button>
-          </Sheet>
-        ) : null}
-        {state.ready && state.goalDoneOpen ? (
-          <Modal label="Goal complete">
-            <h2 className="text-xl font-extrabold">You did it.</h2>
-            <p className="text-sm">You added food, looked at what is going bad, and opened a recipe that uses it. Keep cooking, or try another path.</p>
-            <Button type="button" className={tap} onClick={closeGoalDone}>Keep going</Button>
           </Modal>
         ) : null}
         {state.ready && state.tourStep > 0 && state.screen === "home" ? (
-          <Sheet label="Tour">
-            <p className="text-xs font-bold text-muted-foreground">Look around · {state.tourStep} of 4</p>
+          <TourSheet>
+            <p className="text-xs font-bold text-muted-foreground">Look around · {state.tourStep} of 5</p>
             <h2 className="text-xl font-extrabold">
-              {state.tourStep === 1 ? "Eat this soon" : state.tourStep === 2 ? "A recipe from that food" : state.tourStep === 3 ? "Manage the details" : "What you ate"}
+              {state.tourStep === 1
+                ? "Welcome!"
+                : state.tourStep === 2
+                  ? "Eat this soon"
+                  : state.tourStep === 3
+                    ? "A recipe from that food"
+                    : state.tourStep === 4
+                      ? "Manage the details"
+                      : "What you ate"}
             </h2>
             <p className="text-sm">
               {state.tourStep === 1
-                ? "Food closest to going bad is the first thing on Home. Tap one when you want the details."
+                ? "This is a quick tour around the Pantry Pal app so you know where everything lives."
                 : state.tourStep === 2
-                  ? "This recipe uses what is expiring. Open it from here, from Recipes, or from the food itself."
+                  ? "Food closest to going bad is the first thing on Home. Tap one when you want the details."
                   : state.tourStep === 3
-                    ? "Pantry is where you change a count, a date, or where something sits. Reminders live in the bell."
-                    : "Meals is where you log what you ate. We ask how much of each food is left."}
+                    ? "This recipe uses what is expiring. Open it from here, from Recipes, or from the food itself."
+                    : state.tourStep === 4
+                      ? "Pantry is where you change a count, a date, or where something sits. Reminders live in the bell."
+                      : "Meals is where you log what you ate. We ask how much of each food is left."}
             </p>
             <Button type="button" className={tap} data-testid="tour-next" onClick={nextTour}>
-              {state.tourStep === 4 ? "Done" : "Next"}
+              {state.tourStep === 5 ? "Done" : "Next"}
             </Button>
             <Button type="button" variant="ghost" className="h-11! font-semibold" data-testid="skip-tour" onClick={skipTour}>
               Skip the tour
             </Button>
-          </Sheet>
+          </TourSheet>
         ) : null}
         {state.ready && state.pendingToss ? (
           <Modal label="Toss this food">
@@ -162,8 +145,8 @@ export function Phone({ children }: { children: ReactNode }) {
         <nav className="grid shrink-0 grid-cols-5 border-t border-border bg-[#fbf9f4] px-1 pt-1 pb-3" aria-label="Main">
           <Tab icon={<Home />} label="Home" on={active === "home"} onClick={() => tab("home")} testid="tab-home" />
           <Tab icon={<BookOpen />} label="Recipes" on={active === "recipes"} onClick={() => tab("recipes")} testid="tab-recipes" />
-          <Tab icon={<Refrigerator />} label="Pantry" on={active === "pantry"} onClick={() => tab("pantry")} testid="tab-pantry" />
-          <Tab icon={<Utensils />} label="Meals" on={active === "meals"} onClick={() => tab("meals")} testid="tab-meals" />
+          <Tab icon={<Refrigerator />} label="Pantry" on={active === "pantry"} onClick={() => tab("pantry")} testid="tab-pantry" tour={state.tourStep === 4} />
+          <Tab icon={<Utensils />} label="Meals" on={active === "meals"} onClick={() => tab("meals")} testid="tab-meals" tour={state.tourStep === 5} />
           <Tab icon={<UserRound />} label="Profile" on={active === "profile"} onClick={() => tab("profile")} testid="tab-profile" />
         </nav>
       ) : (
@@ -173,9 +156,35 @@ export function Phone({ children }: { children: ReactNode }) {
   )
 }
 
-function Tab({ icon, label, on, onClick, testid }: { icon: ReactNode; label: string; on: boolean; onClick: () => void; testid: string }) {
+function Tab({
+  icon,
+  label,
+  on,
+  onClick,
+  testid,
+  tour = false,
+}: {
+  icon: ReactNode
+  label: string
+  on: boolean
+  onClick: () => void
+  testid: string
+  tour?: boolean
+}) {
   return (
-    <button type="button" data-testid={testid} onClick={onClick} className={`flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px] font-bold ${on ? "text-primary" : "text-[#6a665e]"}`}>
+    <button
+      type="button"
+      data-testid={testid}
+      onClick={onClick}
+      aria-current={on ? "page" : undefined}
+      className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-bold transition-colors ${
+        tour
+          ? "bg-[#fffdf8] text-primary shadow-[0_0_0_3px_#4a6741,0_0_0_7px_rgba(74,103,65,0.28)]"
+          : on
+            ? "bg-[#dce6d8] text-primary [&_svg]:stroke-[2.75]"
+            : "text-[#6a665e]"
+      }`}
+    >
       {icon}
       {label}
     </button>
@@ -184,36 +193,20 @@ function Tab({ icon, label, on, onClick, testid }: { icon: ReactNode; label: str
 
 function Modal({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#2b2a27]/50 p-4" role="dialog" aria-modal="true" aria-label={label}>
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#2b2a27]/65 p-4 backdrop-blur-[8px]" role="dialog" aria-modal="true" aria-label={label}>
       <div className="flex max-h-full w-full flex-col gap-3 overflow-y-auto rounded-2xl border border-foreground bg-popover p-5">{children}</div>
     </div>
   )
 }
 
-function Sheet({ children, label, onClose }: { children: ReactNode; label: string; onClose?: () => void }) {
+function TourSheet({ children }: { children: ReactNode }) {
   return (
-    <div className="absolute inset-0 z-30 flex items-end bg-[#2b2a27]/40" role="dialog" aria-modal="true" aria-label={label}>
-      <div className="flex max-h-[78%] w-full flex-col gap-3 overflow-y-auto rounded-t-2xl border border-foreground bg-popover p-5">
+    <div className="pointer-events-none absolute inset-0 z-30 flex items-end" role="dialog" aria-modal="true" aria-label="Tour">
+      <div className="pointer-events-auto flex max-h-[38%] w-full flex-col gap-3 overflow-y-auto rounded-t-2xl border border-foreground bg-popover p-5 shadow-[0_-12px_28px_rgba(43,42,39,0.16)]">
         <div className="mx-auto h-1 w-10 rounded-full bg-[#bdb6a8]" />
-        {onClose ? (
-          <div className="flex justify-end">
-            <Button type="button" variant="ghost" className="h-10!" onClick={onClose}>Close</Button>
-          </div>
-        ) : null}
         {children}
       </div>
     </div>
   )
 }
 
-function GoalRow({ done, title, hint }: { done: boolean; title: string; hint: string }) {
-  return (
-    <div className="flex gap-3">
-      <span className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${done ? "border-primary bg-primary text-white" : "border-[#8c867a]"}`}>{done ? "✓" : ""}</span>
-      <span>
-        <span className="block font-bold">{title}</span>
-        <span className="text-sm text-muted-foreground">{hint}</span>
-      </span>
-    </div>
-  )
-}
