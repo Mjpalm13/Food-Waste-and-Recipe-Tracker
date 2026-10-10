@@ -8,6 +8,8 @@ export type Screen =
   | "sample"
   | "reading"
   | "review"
+  | "edit-draft"
+  | "add-draft"
   | "unknown"
   | "produce"
   | "location"
@@ -153,4 +155,5 @@ export type State = {
   mealQueue: string[]
   mealAnswers: MealAnswer[]
   tipIndex: number
+  demoMode: boolean
 }

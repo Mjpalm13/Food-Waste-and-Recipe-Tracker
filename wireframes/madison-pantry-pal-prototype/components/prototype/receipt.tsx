@@ -3,10 +3,17 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { SAMPLE_LINES, soonLabel } from "@/lib/food"
+import { Input } from "@/components/ui/input"
+import { keepDaysAt, SAMPLE_LINES, soonLabel, type LocationName } from "@/lib/food"
 import { useApp } from "@/lib/store"
-import { Camera, ImagePlus, ReceiptText } from "lucide-react"
-import { ExpireBadge, Field, Header, LocationChips, readImage, Screen, Scroll, Sketch, Stepper, tap } from "@/components/prototype/parts"
+import type { DraftLine } from "@/lib/types"
+import { Camera, ImagePlus, Plus, ReceiptText } from "lucide-react"
+import { ExpireBadge, Field, Header, LocationChips, readImage, Screen, Scroll, Sketch, Stepper, StorageTip, tap } from "@/components/prototype/parts"
+
+function draftQtyLabel(line: DraftLine) {
+  if (line.qty === null) return "Needs a count"
+  return `${line.qty} ${line.unit}`.trim()
+}
 
 export function SampleReceipt() {
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -41,7 +48,7 @@ export function SampleReceipt() {
 }
 
 function ChoiceButtons() {
-  const { go } = useApp()
+  const { state, go } = useApp()
   return (
     <div className="flex flex-col gap-3">
       <Button type="button" className={tap} data-testid="take-photo" onClick={() => go("camera")}>
@@ -50,8 +57,13 @@ function ChoiceButtons() {
       <Button type="button" variant="outline" className={tap} data-testid="upload-photo" onClick={() => go("upload")}>
         <ImagePlus /> Upload a picture
       </Button>
-      <Button type="button" variant="outline" className={tap} data-testid="sample-receipt" onClick={() => go("sample")}>
-        <ReceiptText /> Use the sample receipt
+      {state.demoMode ? (
+        <Button type="button" variant="outline" className={tap} data-testid="sample-receipt" onClick={() => go("sample")}>
+          <ReceiptText /> Use the sample receipt
+        </Button>
+      ) : null}
+      <Button type="button" variant="outline" className={tap} data-testid="add-individual" onClick={() => go("add-item")}>
+        <Plus /> Add individual items
       </Button>
     </div>
   )
@@ -86,13 +98,13 @@ export function CameraScreen() {
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [live, setLive] = useState(false)
-  const { back, setPhoto, beginRead, go } = useApp()
+  const { state, back, setPhoto, beginRead, go } = useApp()
 
   useEffect(() => {
     let stopped = false
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError("This device has no camera. Choose a picture, or use the sample receipt.")
+        setError(state.demoMode ? "This device has no camera. Choose a picture, or use the sample receipt." : "This device has no camera. Choose a picture instead.")
         return
       }
       try {
@@ -108,7 +120,7 @@ export function CameraScreen() {
         }
         setLive(true)
       } catch {
-        setError("The camera did not open. Choose a picture, or use the sample receipt.")
+        setError(state.demoMode ? "The camera did not open. Choose a picture, or use the sample receipt." : "The camera did not open. Choose a picture instead.")
       }
     }
     void start()
@@ -116,7 +128,7 @@ export function CameraScreen() {
       stopped = true
       streamRef.current?.getTracks().forEach((track) => track.stop())
     }
-  }, [])
+  }, [state.demoMode])
 
   function keepShot(url: string) {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -165,9 +177,11 @@ export function CameraScreen() {
             readImage(file, keepShot, () => setError("Choose a picture of a receipt."))
           }}
         />
-        <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("sample")}>
-          Use the sample receipt instead
-        </Button>
+        {state.demoMode ? (
+          <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("sample")}>
+            Use the sample receipt instead
+          </Button>
+        ) : null}
       </Scroll>
     </Screen>
   )
@@ -177,7 +191,7 @@ export function UploadScreen() {
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const { back, setPhoto, beginRead, go } = useApp()
+  const { state, back, setPhoto, beginRead, go } = useApp()
 
   return (
     <Screen>
@@ -225,9 +239,11 @@ export function UploadScreen() {
         >
           Read this picture
         </Button>
-        <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("sample")}>
-          Use the sample receipt instead
-        </Button>
+        {state.demoMode ? (
+          <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("sample")}>
+            Use the sample receipt instead
+          </Button>
+        ) : null}
       </Scroll>
     </Screen>
   )
@@ -284,7 +300,7 @@ export function ReadingScreen() {
 }
 
 export function ReviewScreen() {
-  const { state, back, toggleLine, continueReview } = useApp()
+  const { state, back, toggleLine, continueReview, openDraftEdit, go } = useApp()
   const foods = state.draft.filter((line) => line.kind !== "ignored")
   const kept = foods.some((line) => line.include)
   return (
@@ -296,22 +312,36 @@ export function ReviewScreen() {
           <img src={state.photo} alt="Your receipt photo" className="max-h-40 w-full rounded-2xl border border-dashed object-contain" />
         ) : null}
         <p className="text-sm text-muted-foreground">
-          Practice reader: this draft matches the receipt to a stored grocery list. Uncheck anything you did not buy. Tax was left off.
+          Tap a food to edit it. Uncheck anything you did not buy. Tax was left off.
         </p>
         <ul className="flex flex-col gap-2">
           {foods.map((line) => (
-            <li key={line.id} className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-card p-3">
-              <Checkbox checked={line.include} onCheckedChange={() => toggleLine(line.id)} aria-label={`Include ${line.name || line.raw}`} className="mt-1 size-5" />
-              <div className="min-w-0 flex-1">
+            <li key={line.id} className="flex items-stretch gap-2 rounded-xl border border-dashed border-border bg-card p-2">
+              <Checkbox
+                checked={line.include}
+                onCheckedChange={() => toggleLine(line.id)}
+                aria-label={`Include ${line.name || line.raw}`}
+                className="mt-3 ml-1 size-5 shrink-0"
+              />
+              <button
+                type="button"
+                data-testid={`edit-draft-${line.id}`}
+                onClick={() => openDraftEdit(line.id)}
+                className="min-w-0 flex-1 rounded-lg p-2 text-left"
+              >
                 <p className="font-bold">{line.needsName ? "Needs a name" : line.name}</p>
                 <p className="text-xs text-muted-foreground">{line.raw} · ${line.price}</p>
-                <div className="mt-2">
-                  {line.needsQuantity ? <BadgeLike>Needs a count</BadgeLike> : <ExpireBadge days={line.days} />}
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {line.needsQuantity || line.qty === null ? <BadgeLike>Needs a count</BadgeLike> : <span className="text-sm font-semibold">{draftQtyLabel(line)}</span>}
+                  <ExpireBadge days={line.days} />
                 </div>
-              </div>
+              </button>
             </li>
           ))}
         </ul>
+        <Button type="button" variant="outline" className={tap} data-testid="add-draft-food" onClick={() => go("add-draft")}>
+          <Plus /> Add a missing food
+        </Button>
         {kept ? null : <p className="text-sm text-muted-foreground">Keep at least one food.</p>}
       </Scroll>
       <div className="shrink-0 border-t border-border px-5 py-3">
@@ -323,12 +353,125 @@ export function ReviewScreen() {
   )
 }
 
+function DraftLineForm({
+  title,
+  initial,
+  onBack,
+  onSave,
+  testId,
+}: {
+  title: string
+  initial: Pick<DraftLine, "name" | "qty" | "unit" | "days" | "location">
+  onBack: () => void
+  onSave: (line: Pick<DraftLine, "name" | "qty" | "unit" | "days" | "location">) => void
+  testId: string
+}) {
+  const [name, setName] = useState(initial.name)
+  const [qty, setQty] = useState(initial.qty ?? 1)
+  const [knowQty, setKnowQty] = useState(initial.qty !== null)
+  const [unit, setUnit] = useState(initial.unit || "item")
+  const [location, setLocation] = useState<LocationName | null>(initial.location)
+  const [days, setDays] = useState(initial.days ?? 3)
+  const [knowDate, setKnowDate] = useState(initial.days !== null)
+  const [error, setError] = useState("")
+  function chooseLocation(next: LocationName | null) {
+    setLocation(next)
+    const suggested = keepDaysAt(name, next)
+    if (suggested !== null) {
+      setDays(suggested)
+      setKnowDate(true)
+    }
+  }
+  return (
+    <Screen>
+      <Header title={title} onBack={onBack} />
+      <Scroll>
+        <Field id="draft-name" label="Name" value={name} onChange={setName} error={error} />
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Count</p>
+          {knowQty ? (
+            <>
+              <Stepper value={qty} onChange={setQty} label="Count" />
+              <Input value={unit} onChange={(event) => setUnit(event.target.value)} aria-label="Unit" className="h-12! text-base" />
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No count yet.</p>
+          )}
+          <Button type="button" variant="outline" className="h-11!" onClick={() => setKnowQty((value) => !value)}>
+            {knowQty ? "I don't know the count" : "Set a count"}
+          </Button>
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Where it goes</p>
+          <LocationChips value={location} allowEmpty onChange={chooseLocation} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium">Use within</p>
+          {knowDate ? <Stepper value={days} onChange={setDays} label="Days" /> : <p className="text-sm text-muted-foreground">No date yet.</p>}
+          <StorageTip name={name} location={location} />
+          <Button type="button" variant="outline" className="h-11!" onClick={() => setKnowDate((value) => !value)}>
+            {knowDate ? "I don't know the date" : "Set a date"}
+          </Button>
+        </div>
+        <Button
+          type="button"
+          className={tap}
+          data-testid={testId}
+          onClick={() => {
+            if (name.trim().length < 2) {
+              setError("Give the food a name.")
+              return
+            }
+            onSave({
+              name: name.trim(),
+              qty: knowQty ? qty : null,
+              unit: unit.trim() || "item",
+              days: knowDate ? days : null,
+              location,
+            })
+          }}
+        >
+          Save
+        </Button>
+      </Scroll>
+    </Screen>
+  )
+}
+
+export function EditDraftScreen() {
+  const { state, back, saveDraftLine } = useApp()
+  const line = state.draft.find((item) => item.id === state.promptId)
+  if (!line) return null
+  return (
+    <DraftLineForm
+      title="Edit food"
+      initial={line}
+      onBack={back}
+      onSave={saveDraftLine}
+      testId="save-draft-edit"
+    />
+  )
+}
+
+export function AddDraftScreen() {
+  const { back, addDraftLine } = useApp()
+  return (
+    <DraftLineForm
+      title="Add a food"
+      initial={{ name: "", qty: 1, unit: "item", days: 3, location: null }}
+      onBack={back}
+      onSave={addDraftLine}
+      testId="save-draft-add"
+    />
+  )
+}
+
 function BadgeLike({ children }: { children: string }) {
   return <span className="inline-flex h-6 items-center rounded-full bg-[#f6e2c6] px-2 text-xs font-medium text-[#7a3e0c]">{children}</span>
 }
 
 export function UnknownScreen() {
-  const { state, back, saveUnknown, deferUnknown } = useApp()
+  const { state, back, saveUnknown, deferUnknown, deleteUnknown } = useApp()
   const line = state.draft.find((item) => item.id === state.promptId)
   const [name, setName] = useState("")
   if (!line) return null
@@ -338,13 +481,16 @@ export function UnknownScreen() {
       <Scroll>
         <Sketch label="code" className="h-24" />
         <h2 className="text-2xl font-extrabold">{line.raw}</h2>
-        <p className="text-sm text-muted-foreground">This store code is not in the list. Name the food now, or leave it for later. You cannot pass it by accident.</p>
+        <p className="text-sm text-muted-foreground">This store code is not in the list. Name it, leave it for later, or delete it if it is not food.</p>
         <Field id="unknown-name" label="What food is it?" value={name} onChange={setName} />
         <Button type="button" className={tap} disabled={!name.trim()} data-testid="save-unknown" onClick={() => saveUnknown(name)}>
           Save this name
         </Button>
         <Button type="button" variant="outline" className={tap} data-testid="later-unknown" onClick={deferUnknown}>
           Decide later
+        </Button>
+        <Button type="button" variant="ghost" className="h-11! font-semibold text-[#9a4a12]" data-testid="delete-unknown" onClick={deleteUnknown}>
+          Delete this line
         </Button>
       </Scroll>
     </Screen>
@@ -377,21 +523,71 @@ export function ProduceScreen() {
   )
 }
 
+function isColdPlace(location: LocationName | null) {
+  return location === "Fridge" || location === "Freezer"
+}
+
+function keepStep(days: number) {
+  if (days >= 60) return 30
+  if (days >= 14) return 7
+  return 1
+}
+
 export function LocationScreen() {
-  const { state, back, setDraftLocation, savePlaces, skipPlaces, go } = useApp()
+  const { state, back, setDraftLocation, setDraftDays, savePlaces, skipPlaces, go } = useApp()
   const lines = state.draft.filter((line) => line.include && line.kind !== "ignored")
+  const startedAt = useRef<Record<string, LocationName | null>>({})
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+
+  for (const line of lines) {
+    if (!(line.id in startedAt.current)) startedAt.current[line.id] = line.location
+  }
+
+  function choosePlace(line: DraftLine, location: LocationName | null) {
+    setTouched((current) => ({ ...current, [line.id]: true }))
+    setDraftLocation(line.id, location)
+  }
+
+  function showKeepAdvice(line: DraftLine) {
+    if (!touched[line.id]) return false
+    const started = startedAt.current[line.id] ?? null
+    return isColdPlace(line.location) || isColdPlace(started)
+  }
+
   return (
     <Screen>
       <Header title="Where does it go?" onBack={back} />
       <Scroll>
         <p className="text-sm text-muted-foreground">A place makes food easier to find in a shared kitchen. Skip this, or set a reminder and do it later.</p>
         <ul className="flex flex-col gap-4">
-          {lines.map((line) => (
-            <li key={line.id} className="flex flex-col gap-2">
-              <p className="font-bold">{line.name}</p>
-              <LocationChips value={line.location} allowEmpty onChange={(location) => setDraftLocation(line.id, location)} />
-            </li>
-          ))}
+          {lines.map((line) => {
+            const advice = showKeepAdvice(line)
+            const days = line.days ?? 3
+            return (
+              <li key={line.id} className="flex flex-col gap-2 rounded-xl border border-dashed border-border bg-card p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-bold">{line.name}</p>
+                  <ExpireBadge days={line.days} />
+                </div>
+                <LocationChips value={line.location} allowEmpty onChange={(location) => choosePlace(line, location)} />
+                {advice && line.location ? (
+                  <>
+                    <p className="text-sm font-semibold text-[#7a3e0c]">
+                      Now lasting about {soonLabel(line.days).toLowerCase()} in the {line.location.toLowerCase()}.
+                    </p>
+                    <StorageTip name={line.name} location={line.location} />
+                    <div className="flex flex-col gap-2 rounded-xl border border-dashed border-[#d7c4a8] bg-[#fffdf8] p-3">
+                      <p className="text-sm font-medium">Adjust how long it should last</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Stepper value={days} onChange={(value) => setDraftDays(line.id, value)} label="Days to keep" step={keepStep(days)} />
+                        <span className="text-sm text-muted-foreground">{soonLabel(days).toLowerCase()}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       </Scroll>
       <div className="flex shrink-0 flex-col gap-2 border-t border-border px-5 py-3">
@@ -402,8 +598,13 @@ export function LocationScreen() {
           <Button type="button" variant="outline" className="h-12! font-bold" data-testid="skip-places" onClick={skipPlaces}>
             Skip
           </Button>
-          <Button type="button" variant="outline" className="h-12! font-bold" data-testid="remind-later" onClick={() => go("remind-when")}>
-            Remind me
+          <Button
+            type="button"
+            className="h-12! font-bold bg-[#c47a28] text-white hover:bg-[#b36c20]"
+            data-testid="remind-later"
+            onClick={() => go("remind-when")}
+          >
+            Remind me later
           </Button>
         </div>
       </div>

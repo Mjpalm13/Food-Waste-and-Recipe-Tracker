@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { CATALOG, findItem, isSoon, rankedRecipes, RECIPES, recipeMatch, soonLabel, type LocationName } from "@/lib/food"
+import { CATALOG, findItem, isSoon, keepDaysAt, rankedRecipes, RECIPES, recipeMatch, soonLabel, type LocationName } from "@/lib/food"
 import { useApp } from "@/lib/store"
 import type { PantryItem } from "@/lib/types"
-import { Bell, Heart, Pencil } from "lucide-react"
+import { Heart, Pencil } from "lucide-react"
 import { foodTip } from "@/components/prototype/meals"
-import { ExpireBadge, Field, Header, LocationChips, Screen, Scroll, Sketch, Stepper, tap } from "@/components/prototype/parts"
+import { ExpireBadge, Field, Header, LocationChips, Screen, Scroll, Sketch, Stepper, StorageTip, tap, tourSpot } from "@/components/prototype/parts"
 
 function recipeBlurb(recipeId: string, pantry: PantryItem[]) {
   const recipe = RECIPES.find((item) => item.id === recipeId)
@@ -21,28 +21,167 @@ function recipeBlurb(recipeId: string, pantry: PantryItem[]) {
   return `You have ${match.have} of ${match.total}`
 }
 
+function freshnessBucket(daysLeft: number | null) {
+  if (daysLeft === null) return "unknown" as const
+  if (isSoon(daysLeft)) return "soon" as const
+  if (daysLeft <= 7) return "week" as const
+  return "later" as const
+}
+
+function FreshnessPie({
+  slices,
+}: {
+  slices: { value: number; color: string }[]
+}) {
+  const total = Math.max(
+    slices.reduce((sum, slice) => sum + slice.value, 0),
+    1
+  )
+  let start = 0
+  const stops = slices
+    .filter((slice) => slice.value > 0)
+    .map((slice) => {
+      const end = start + (slice.value / total) * 100
+      const stop = `${slice.color} ${start}% ${end}%`
+      start = end
+      return stop
+    })
+  return (
+    <div
+      className="size-16 shrink-0 rounded-full border border-[#b3ac9e]"
+      style={{ background: stops.length ? `conic-gradient(${stops.join(", ")})` : "#e7e3d9" }}
+      aria-hidden="true"
+    />
+  )
+}
+
+function PantryGlance({
+  pantry,
+  used,
+  tossed,
+  onOpenPantry,
+  onFilter,
+}: {
+  pantry: PantryItem[]
+  used: number
+  tossed: number
+  onOpenPantry: () => void
+  onFilter: (filter: string) => void
+}) {
+  const count = pantry.length
+  const soon = pantry.filter((item) => freshnessBucket(item.daysLeft) === "soon").length
+  const week = pantry.filter((item) => freshnessBucket(item.daysLeft) === "week").length
+  const later = pantry.filter((item) => freshnessBucket(item.daysLeft) === "later").length
+  const unknown = pantry.filter((item) => freshnessBucket(item.daysLeft) === "unknown").length
+  const slices = [
+    { value: soon, color: "#c47a28", label: "Next 3 days", filter: "Expiring" as string | null },
+    { value: week, color: "#7d9a74", label: "This week", filter: null },
+    { value: later, color: "#4a6741", label: "Later", filter: null },
+    { value: unknown, color: "#bdb6a8", label: "No date", filter: "Needs a detail" as string | null },
+  ]
+  const locations = (["Fridge", "Freezer", "Cabinet", "Counter"] as const)
+    .map((place) => ({
+      place,
+      count: pantry.filter((item) => item.location === place).length,
+    }))
+    .filter((row) => row.count > 0)
+  const noPlace = pantry.filter((item) => !item.location).length
+
+  return (
+    <div>
+      <div className="mb-2 flex items-end justify-between gap-2">
+        <div>
+          <h3 className="text-lg font-extrabold">Your kitchen</h3>
+          <p className="text-sm text-muted-foreground">{count} in pantry</p>
+        </div>
+        <button type="button" onClick={onOpenPantry} className="shrink-0 text-sm font-bold text-primary">
+          See all
+        </button>
+      </div>
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-dashed border-[#b3ac9e] bg-card p-3">
+        <div className="flex items-center gap-3" aria-label="How soon to use food">
+          <FreshnessPie slices={slices} />
+          <ul className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-semibold">
+            {slices
+              .filter((slice) => slice.label !== "No date" || slice.value > 0)
+              .map((slice) => {
+                const row = (
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="size-2 shrink-0 rounded-full" style={{ background: slice.color }} />
+                      <span className="truncate">{slice.label}</span>
+                    </span>
+                    <span className="tabular-nums">{slice.value}</span>
+                  </span>
+                )
+                if (!slice.filter) return <li key={slice.label}>{row}</li>
+                return (
+                  <li key={slice.label}>
+                    <button type="button" className="w-full text-left" onClick={() => onFilter(slice.filter!)}>
+                      {row}
+                    </button>
+                  </li>
+                )
+              })}
+          </ul>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5" aria-label="Where food sits">
+          {locations.map(({ place, count: placeCount }) => (
+            <button
+              key={place}
+              type="button"
+              onClick={() => onFilter(place)}
+              className="rounded-full border border-dashed border-[#b3ac9e] bg-[#fbf9f4] px-2.5 py-1 text-xs font-semibold"
+            >
+              {place} · {placeCount}
+            </button>
+          ))}
+          {noPlace > 0 ? (
+            <button
+              type="button"
+              onClick={() => onFilter("No place")}
+              className="rounded-full border border-dashed border-[#c49a6c] bg-[#f6e2c6] px-2.5 py-1 text-xs font-semibold text-[#7a3e0c]"
+            >
+              No place · {noPlace}
+            </button>
+          ) : null}
+        </div>
+
+        {used > 0 || tossed > 0 ? (
+          <p className="text-[11px] text-muted-foreground">
+            Logged: {used} used · {tossed} tossed
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export function HomeScreen() {
-  const { state, go, openItem, openRecipe, doReminder } = useApp()
+  const { state, go, openItem, openRecipe, doReminder, setPantryFilter, tab } = useApp()
   const soon = state.pantry.filter((item) => isSoon(item.daysLeft)).sort((a, b) => (a.daysLeft ?? 99) - (b.daysLeft ?? 99))
   const ranked = rankedRecipes(state.pantry)
   const featured = state.pantry.length ? ranked[0] : null
   const rest = ranked.slice(1, 3)
   const locationReminder = state.reminders.find((reminder) => reminder.kind === "location" && !reminder.done)
   const detailCount = state.pantry.filter((item) => item.needsName || item.needsQuantity || item.daysLeft === null).length
-  const bell = soon.length + state.reminders.filter((reminder) => !reminder.done).length
+
+  useEffect(() => {
+    if (state.tourStep < 2 || state.tourStep > 4) return
+    const spot = document.querySelector("[data-tour-spot]")
+    spot?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [state.tourStep])
+
+  function openPantryFilter(filter: string) {
+    setPantryFilter(filter)
+    tab("pantry")
+  }
 
   if (state.pantry.length === 0) {
     return (
       <Screen>
-        <Header
-          title="Home"
-          side={
-            <Button type="button" variant="ghost" className="size-11! px-0" aria-label="Notifications" onClick={() => go("notifications")}>
-              <Bell />
-            </Button>
-          }
-        />
-        <Scroll>
+        <Scroll className="pt-4">
           <h2 className="text-3xl leading-tight font-extrabold">See what you have. Eat it before it goes bad.</h2>
           <p className="text-[#4a463f]">Your kitchen is empty. A receipt is the fast way in.</p>
           <Button type="button" className={tap} onClick={() => go("camera")}>
@@ -51,9 +190,11 @@ export function HomeScreen() {
           <Button type="button" variant="outline" className={tap} onClick={() => go("upload")}>
             Upload a picture
           </Button>
-          <Button type="button" variant="outline" className={tap} data-testid="home-sample" onClick={() => go("sample")}>
-            Use the sample receipt
-          </Button>
+          {state.demoMode ? (
+            <Button type="button" variant="outline" className={tap} data-testid="home-sample" onClick={() => go("sample")}>
+              Use the sample receipt
+            </Button>
+          ) : null}
           <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("add-item")}>
             Or type in one food
           </Button>
@@ -64,35 +205,36 @@ export function HomeScreen() {
 
   return (
     <Screen>
-      <Header
-        title="Home"
-        side={
-          <Button type="button" variant="ghost" className="relative size-11! px-0" aria-label="Notifications" onClick={() => go("notifications")}>
-            <Bell />
-            {bell > 0 ? <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9a4a12] px-1 text-[10px] font-bold text-white">{bell}</span> : null}
-          </Button>
-        }
-      />
-      <Scroll>
-        <div className={state.tourStep === 1 ? "rounded-2xl ring-2 ring-primary ring-offset-4 ring-offset-background" : ""}>
-          <h2 className="text-3xl leading-tight font-extrabold">Eat this soon</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Closest to going bad. This is the first thing we show you.</p>
-          {soon.length === 0 ? (
-            <p className="mt-3 text-sm">Nothing is close to expiring. Nice.</p>
-          ) : (
-            <ul className="mt-3 flex flex-col gap-2">
-              {soon.map((item) => (
-                <li key={item.id}>
-                  <button type="button" data-testid={`soon-${item.id}`} onClick={() => openItem(item.id)} className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[#b3ac9e] bg-card p-2 text-left">
-                    <Sketch label={item.name.split(" ")[0].toLowerCase()} className="size-14 shrink-0" />
-                    <span className="min-w-0 flex-1 font-bold">{item.name}</span>
-                    <ExpireBadge days={item.daysLeft} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+      <Scroll className="pt-4">
+        <div data-tour-spot={state.tourStep === 2 ? "" : undefined} className={state.tourStep === 2 ? tourSpot : ""}>
+          <h2 className="text-lg font-extrabold">Eat this soon</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">Closest to going bad.</p>
+          <div className="mt-2 rounded-2xl border border-dashed border-[#b3ac9e] bg-card p-3">
+            {soon.length === 0 ? (
+              <p className="text-sm">Nothing is close to expiring. Nice.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {soon.map((item) => (
+                  <li key={item.id}>
+                    <button type="button" data-testid={`soon-${item.id}`} onClick={() => openItem(item.id)} className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[#b3ac9e] bg-[#fbf9f4] p-2 text-left">
+                      <Sketch label={item.name} className="size-12 shrink-0" />
+                      <span className="min-w-0 flex-1 font-bold">{item.name}</span>
+                      <ExpireBadge days={item.daysLeft} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
+
+        <PantryGlance
+          pantry={state.pantry}
+          used={state.used}
+          tossed={state.tossed}
+          onOpenPantry={() => openPantryFilter("All")}
+          onFilter={openPantryFilter}
+        />
 
         {locationReminder ? (
           <div className="rounded-xl bg-[#f6e2c6] p-3 text-sm text-[#7a3e0c]">
@@ -108,43 +250,42 @@ export function HomeScreen() {
           </Button>
         ) : null}
 
-        {featured ? (
-          <div className={state.tourStep === 2 ? "rounded-2xl ring-2 ring-primary ring-offset-4 ring-offset-background" : ""}>
+        {featured || rest.length > 0 ? (
+          <div data-tour-spot={state.tourStep === 3 ? "" : undefined} className={state.tourStep === 3 ? tourSpot : ""}>
             <h3 className="mb-2 text-lg font-extrabold">Cook with it</h3>
-            <Card className="gap-3 border border-dashed border-[#b3ac9e] bg-card py-3 shadow-none ring-0">
-              <div className="flex gap-3 px-3">
-                <Sketch label={featured.recipe.sketch} className="size-20 shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-extrabold">{featured.recipe.title}</p>
-                  <p className="text-sm text-muted-foreground">{featured.recipe.minutes} min · {recipeBlurb(featured.recipe.id, state.pantry)}</p>
-                </div>
-              </div>
-              <div className="px-3">
-                <Button type="button" className={tap} data-testid="featured-recipe" onClick={() => openRecipe(featured.recipe.id, true)}>
-                  Open recipe
-                </Button>
-              </div>
-            </Card>
+            <ul className="flex flex-col gap-2">
+              {featured ? (
+                <li>
+                  <button
+                    type="button"
+                    data-testid="featured-recipe"
+                    onClick={() => openRecipe(featured.recipe.id, true)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[#b3ac9e] bg-card p-2 text-left"
+                  >
+                    <Sketch label={featured.recipe.sketch} className="size-14 shrink-0" />
+                    <span>
+                      <span className="block font-bold">{featured.recipe.title}</span>
+                      <span className="text-sm text-muted-foreground">{featured.recipe.minutes} min · {recipeBlurb(featured.recipe.id, state.pantry)}</span>
+                    </span>
+                  </button>
+                </li>
+              ) : null}
+              {rest.map(({ recipe }) => (
+                <li key={recipe.id}>
+                  <button type="button" onClick={() => openRecipe(recipe.id, false)} className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border bg-card p-2 text-left">
+                    <Sketch label={recipe.sketch} className="size-14 shrink-0" />
+                    <span>
+                      <span className="block font-bold">{recipe.title}</span>
+                      <span className="text-sm text-muted-foreground">{recipe.minutes} min · {recipeBlurb(recipe.id, state.pantry)}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
 
-        {rest.length > 0 ? (
-          <ul className="flex flex-col gap-2">
-            {rest.map(({ recipe }) => (
-              <li key={recipe.id}>
-                <button type="button" onClick={() => openRecipe(recipe.id, false)} className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border bg-card p-2 text-left">
-                  <Sketch label={recipe.sketch} className="size-14 shrink-0" />
-                  <span>
-                    <span className="block font-bold">{recipe.title}</span>
-                    <span className="text-sm text-muted-foreground">{recipe.minutes} min · {recipeBlurb(recipe.id, state.pantry)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        <div className={state.tourStep === 3 ? "rounded-2xl ring-2 ring-primary ring-offset-4 ring-offset-background" : ""}>
+        <div data-tour-spot={state.tourStep === 4 ? "" : undefined} className={state.tourStep === 4 ? tourSpot : ""}>
           <Button type="button" variant="outline" className={tap} onClick={() => go("pantry")}>
             Manage food
           </Button>
@@ -152,6 +293,7 @@ export function HomeScreen() {
         <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("add")}>
           Add another receipt
         </Button>
+        {state.tourStep > 0 ? <div className="h-44 shrink-0" aria-hidden="true" /> : null}
       </Scroll>
     </Screen>
   )
@@ -170,7 +312,7 @@ export function RecipesScreen() {
   const segs = [
     ["foryou", "For you"],
     ["all", "All"],
-    ["saved", "Saved"],
+    ["saved", "My favorites"],
   ] as const
   return (
     <Screen>
@@ -184,7 +326,7 @@ export function RecipesScreen() {
             </Button>
           ))}
         </div>
-        {list.length === 0 ? <p className="text-sm text-muted-foreground">{state.recipeSeg === "saved" ? "No saved recipes yet. Open one and tap Save." : "Nothing matches that search."}</p> : null}
+        {list.length === 0 ? <p className="text-sm text-muted-foreground">{state.recipeSeg === "saved" ? "No favorites yet. Open a recipe and tap the heart." : "Nothing matches that search."}</p> : null}
         <ul className="flex flex-col gap-2">
           {list.map(({ recipe, match }) => (
             <li key={recipe.id}>
@@ -216,7 +358,7 @@ export function RecipeScreen() {
         title="Recipe"
         onBack={back}
         side={
-          <Button type="button" variant="ghost" className="size-11! px-0" aria-label={saved ? "Unsave recipe" : "Save recipe"} onClick={toggleSave}>
+          <Button type="button" variant="ghost" className="size-11! px-0" aria-label={saved ? "Remove from favorites" : "Add to favorites"} onClick={toggleSave}>
             <Heart className={saved ? "fill-primary text-primary" : ""} />
           </Button>
         }
@@ -347,13 +489,27 @@ export function PantryScreen() {
     <Screen>
       <Header title={`Pantry (${state.pantry.length})`} />
       <Scroll>
+        <Button type="button" className={tap} data-testid="pantry-add-food" onClick={() => go("add")}>
+          Add food to pantry
+        </Button>
         <Input value={state.pantryQuery} onChange={(event) => setPantryQuery(event.target.value)} placeholder="Search your food" aria-label="Search pantry" className="h-12! text-base" />
-        <div className="-mx-5 flex gap-2 overflow-x-auto px-5">
-          {filters.map((filter) => (
-            <Button key={filter} type="button" variant={state.pantryFilter === filter ? "default" : "outline"} className="h-10! shrink-0 rounded-full" onClick={() => setPantryFilter(filter)}>
-              {filter}
-            </Button>
-          ))}
+        <div className="-mx-5 min-w-0">
+          <div
+            className="flex w-full gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="Filter pantry"
+          >
+            {filters.map((filter) => (
+              <Button
+                key={filter}
+                type="button"
+                variant={state.pantryFilter === filter ? "default" : "outline"}
+                className="h-10! shrink-0 rounded-full px-3"
+                onClick={() => setPantryFilter(filter)}
+              >
+                {filter}
+              </Button>
+            ))}
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">Sorted by what expires first. Open a food to change the count, date, or place.</p>
         {items.length === 0 ? (
@@ -361,7 +517,9 @@ export function PantryScreen() {
             <p className="px-4 font-bold">{state.pantry.length === 0 ? "Nothing here yet" : "Nothing in this filter"}</p>
             <p className="px-4 text-sm text-muted-foreground">Add a receipt, or type in one food.</p>
             <div className="flex flex-col gap-2 px-4">
-              <Button type="button" className={tap} onClick={() => go("sample")}>Use the sample receipt</Button>
+              {state.demoMode ? (
+                <Button type="button" className={tap} onClick={() => go("sample")}>Use the sample receipt</Button>
+              ) : null}
               <Button type="button" variant="outline" className={tap} onClick={() => go("add-item")}>Type in one food</Button>
             </div>
           </Card>
@@ -370,7 +528,7 @@ export function PantryScreen() {
           {items.map((item) => (
             <li key={item.id} className="border-b border-border">
               <button type="button" onClick={() => openItem(item.id)} className="flex min-h-16 w-full items-center gap-3 py-2 text-left">
-                <Sketch label="" className="size-11 shrink-0" />
+                <Sketch label={item.name} className="size-11 shrink-0" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">{item.name}</span>
                   <span className="block text-sm text-muted-foreground">
@@ -397,7 +555,7 @@ export function ItemScreen() {
     <Screen>
       <Header title={item.name} onBack={back} side={<Button type="button" variant="ghost" className="size-11! px-0" aria-label="Edit" onClick={() => go("edit-item")}><Pencil /></Button>} />
       <Scroll>
-        <Sketch label={item.name.split(" ")[0].toLowerCase()} className="h-32" />
+        <Sketch label={item.name} className="h-32" />
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-2xl font-extrabold">{item.name}</h2>
@@ -448,6 +606,14 @@ function ItemForm({
   const [days, setDays] = useState(initial.daysLeft ?? 3)
   const [knowDate, setKnowDate] = useState(initial.daysLeft !== null)
   const [error, setError] = useState("")
+  function chooseLocation(next: LocationName | null) {
+    setLocation(next)
+    const suggested = keepDaysAt(name, next)
+    if (suggested !== null) {
+      setDays(suggested)
+      setKnowDate(true)
+    }
+  }
   return (
     <Screen>
       <Header title={title} onBack={onBack} />
@@ -460,14 +626,15 @@ function ItemForm({
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Where it goes</p>
-          <LocationChips value={location} allowEmpty onChange={setLocation} />
-          <Button type="button" variant="ghost" className="h-11! self-start px-0" onClick={() => setLocation(null)}>
+          <LocationChips value={location} allowEmpty onChange={chooseLocation} />
+          <Button type="button" variant="ghost" className="h-11! self-start px-0" onClick={() => chooseLocation(null)}>
             No place yet
           </Button>
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Use within</p>
           {knowDate ? <Stepper value={days} onChange={setDays} label="Days" /> : <p className="text-sm text-muted-foreground">No date yet.</p>}
+          <StorageTip name={name} location={location} />
           <Button type="button" variant="outline" className="h-11!" onClick={() => setKnowDate((value) => !value)}>
             {knowDate ? "I don't know the date" : "Set a date"}
           </Button>
@@ -525,7 +692,16 @@ export function AddItemScreen() {
     setUnit(food.unit)
     setLocation(food.location)
     setDays(food.days)
+    setKnowDate(true)
     if (food.qty) setQty(food.qty)
+  }
+  function chooseLocation(next: LocationName | null) {
+    setLocation(next)
+    const suggested = keepDaysAt(name, next)
+    if (suggested !== null) {
+      setDays(suggested)
+      setKnowDate(true)
+    }
   }
   return (
     <Screen>
@@ -546,11 +722,12 @@ export function AddItemScreen() {
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Where it goes</p>
-          <LocationChips value={location} allowEmpty onChange={setLocation} />
+          <LocationChips value={location} allowEmpty onChange={chooseLocation} />
         </div>
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Use within</p>
           {knowDate ? <Stepper value={days} onChange={setDays} label="Days" /> : <p className="text-sm text-muted-foreground">No date yet. You can add it later.</p>}
+          <StorageTip name={name} location={location} />
           <Button type="button" variant="outline" className="h-11!" onClick={() => setKnowDate((value) => !value)}>
             {knowDate ? "I don't know the date" : "Set a date"}
           </Button>
@@ -642,12 +819,16 @@ export function FixLocationsScreen() {
     <Screen>
       <Header title="Set places" onBack={back} />
       <Scroll>
-        <p className="text-sm text-muted-foreground">Put each food where you will look for it. You can leave some blank.</p>
+        <p className="text-sm text-muted-foreground">Put each food where you will look for it. Fridge and freezer also update how long it lasts.</p>
         {items.length === 0 ? <p className="text-sm">Every food already has a place.</p> : null}
         {items.map((item) => (
-          <div key={item.id} className="flex flex-col gap-2">
-            <p className="font-bold">{item.name}</p>
+          <div key={item.id} className="flex flex-col gap-2 rounded-xl border border-dashed border-border bg-card p-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-bold">{item.name}</p>
+              <ExpireBadge days={item.daysLeft} />
+            </div>
             <LocationChips value={item.location} onChange={(location) => location && setItemLocation(item.id, location)} />
+            <StorageTip name={item.name} location={item.location} />
           </div>
         ))}
         <Button type="button" className={tap} onClick={() => finishLocations(false)}>Save places</Button>
@@ -729,12 +910,9 @@ export function ProfileScreen() {
           <Stat n={state.tossed} label="tossed" />
         </div>
         <Separator />
-        <Row label="Notifications" onClick={() => go("notifications")} />
         <Row label="Reminders" onClick={() => go("reminders")} />
         {state.session ? <Row label="Edit account" onClick={() => go("edit-profile")} /> : state.registered ? <Row label="Log in" onClick={() => go("login")} /> : <Row label="Make an account" onClick={() => go("account")} />}
         {state.pantry.length > 0 ? <Row label="Show me around again" onClick={replayTour} /> : null}
-        <Row label="About this draft" onClick={() => go("about")} />
-        <Row label="Design library" onClick={() => go("parts")} />
         <Row label="Reset this draft" onClick={askReset} />
         {state.session ? (
           <Button type="button" variant="outline" className={tap} onClick={askLogout}>Log out</Button>
@@ -796,7 +974,7 @@ export function EditProfileScreen() {
 }
 
 export function AboutScreen() {
-  const { back, openNotice, openGoal, go } = useApp()
+  const { back, openNotice, go } = useApp()
   return (
     <Screen>
       <Header title="About this draft" onBack={back} />
@@ -806,7 +984,6 @@ export function AboutScreen() {
         <p className="text-sm">Your account stays in this browser only. There is no server.</p>
         <p className="text-sm">The home screen always leads with food that is about to go bad, then a recipe that uses it. Meals is a separate tab for what you ate and what is left. Tips stay short so they can grow later. Sharing recipes, writing your own, and diet settings are left out so they do not compete with the pantry.</p>
         <Button type="button" className={tap} onClick={openNotice}>Read the draft notice</Button>
-        <Button type="button" variant="outline" className={tap} onClick={openGoal}>Show my goal</Button>
         <Button type="button" variant="ghost" className="h-11! font-semibold" onClick={() => go("parts")}>See the parts this app reuses</Button>
       </Scroll>
     </Screen>

@@ -5,12 +5,26 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { isSoon, LOCATIONS, soonLabel, type LocationName } from "@/lib/food"
+import { isSoon, LOCATIONS, soonLabel, storageAdvice, type LocationName } from "@/lib/food"
+import { imageForLabel } from "@/lib/images"
+import { cn } from "cn"
 import { ChevronLeft } from "lucide-react"
 
 export const tap = "h-12! rounded-xl px-4 text-base font-bold"
 
+export const tourSpot =
+  "rounded-2xl bg-[#fffdf8] p-3 shadow-[0_0_0_4px_#4a6741,0_0_0_10px_rgba(74,103,65,0.28)] outline outline-2 outline-offset-2 outline-[#c47a28]"
+
 export function Sketch({ label, className = "" }: { label: string; className?: string }) {
+  const src = imageForLabel(label)
+  if (src) {
+    return (
+      <div className={`relative overflow-hidden rounded-xl border border-dashed border-[#b3ac9e] bg-[#efe9dc] ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" className="absolute inset-0 size-full object-cover" />
+      </div>
+    )
+  }
   return (
     <div className={`sketch flex items-center justify-center text-[#5f5b53] ${className}`}>
       <span className="note-font text-lg">{label}</span>
@@ -37,14 +51,14 @@ export function Header({ title, onBack, side }: { title: string; onBack?: () => 
       ) : (
         <span className="w-2" />
       )}
-      <h1 className="min-w-0 flex-1 truncate text-lg font-extrabold">{title}</h1>
+      {title ? <h1 className="min-w-0 flex-1 truncate text-lg font-extrabold">{title}</h1> : <span className="min-w-0 flex-1" />}
       {side}
     </div>
   )
 }
 
-export function Scroll({ children }: { children: ReactNode }) {
-  return <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1 pb-8">{children}</div>
+export function Scroll({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1 pb-8", className)}>{children}</div>
 }
 
 export function Screen({ children }: { children: ReactNode }) {
@@ -81,14 +95,32 @@ export function LocationChips({
   )
 }
 
-export function Stepper({ value, onChange, label, min = 1 }: { value: number; onChange: (value: number) => void; label: string; min?: number }) {
+export function StorageTip({ name, location = null }: { name: string; location?: LocationName | null }) {
+  if (!name.trim()) return null
+  return <p className="rounded-xl bg-[#f6e2c6] px-3 py-2 text-sm text-[#7a3e0c]">{storageAdvice(name, location)}</p>
+}
+
+export function Stepper({
+  value,
+  onChange,
+  label,
+  min = 1,
+  step = 1,
+}: {
+  value: number
+  onChange: (value: number) => void
+  label: string
+  min?: number
+  step?: number
+}) {
+  const amount = Math.max(1, step)
   return (
     <div className="flex items-center gap-3" aria-label={label}>
-      <Button type="button" variant="outline" className="size-11! px-0 text-lg" onClick={() => onChange(Math.max(min, value - 1))} aria-label="Less">
+      <Button type="button" variant="outline" className="size-11! px-0 text-lg" onClick={() => onChange(Math.max(min, value - amount))} aria-label="Less">
         −
       </Button>
-      <span className="w-8 text-center text-lg font-extrabold">{value}</span>
-      <Button type="button" variant="outline" className="size-11! px-0 text-lg" onClick={() => onChange(value + 1)} aria-label="More">
+      <span className="min-w-8 text-center text-lg font-extrabold">{value}</span>
+      <Button type="button" variant="outline" className="size-11! px-0 text-lg" onClick={() => onChange(value + amount)} aria-label="More">
         +
       </Button>
     </div>
